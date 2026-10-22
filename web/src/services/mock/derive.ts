@@ -24,10 +24,15 @@ export function toEvent(e: EventRecord): Event {
   return {
     id: e.id,
     name: e.name,
+    tourName: e.tourName,
     city: e.city,
     venue: e.venue,
     startsAt: e.startsAt,
     saleOpensAt: e.saleOpensAt,
+    capacityPerMin: e.capacityPerMin,
+    remainingTicketsText: e.remainingTicketsText,
+    startingPrice: e.startingPrice,
+    gateInfo: e.gateInfo,
     status: deriveEventStatus(e),
   };
 }
@@ -62,6 +67,9 @@ export function computeQueueStatus(
     initialPosition: cfg.initialQueuePosition,
     etaSeconds: Math.ceil(position / cfg.admissionRatePerSec),
     retryAfterMs: cfg.retryAfterMs,
+    token: q.token || "SEC-Q928-ACTIVE",
+    speedPerMin: 250,
+    trafficStability: "99.8%",
   };
   if (position > 0) return { ...base, state: "WAITING" };
   if (now <= bookingExpiresAt) {

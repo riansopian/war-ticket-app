@@ -1,7 +1,6 @@
 /**
- * Domain model (framework-agnostic). Mengacu ke SPEC §9 (Data Model) dan
- * BRAINSTORM-01 (status UPCOMING / ALMOST_SOLD_OUT, "Your Queue").
- * Semua timestamp berupa ISO string UTC; harga dalam rupiah (integer).
+ * Domain model (framework-agnostic).
+ * Diperbarui untuk mendukung visual fidelity tinggi sesuai Revamp Figma.
  */
 
 export type EventStatus =
@@ -13,19 +12,26 @@ export type EventStatus =
 export interface Event {
   id: string;
   name: string;
+  tourName?: string;
   city: string;
   venue: string;
   startsAt: string;
   saleOpensAt: string;
   status: EventStatus;
+  capacityPerMin?: string;
+  remainingTicketsText?: string;
+  startingPrice?: number;
+  gateInfo?: string;
 }
 
 export interface TicketCategory {
   id: string;
   name: string;
   price: number;
-  /** Sisa stok yang bisa dibeli saat ini. */
   available: number;
+  description?: string;
+  tag?: string;
+  isSoldOut?: boolean;
 }
 
 /* ───────── Queue ───────── */
@@ -35,12 +41,12 @@ export type QueueState = "NONE" | "WAITING" | "ADMITTED" | "EXPIRED";
 export interface QueueStatus {
   state: QueueState;
   position: number;
-  /** Posisi awal saat join, dipakai untuk progress bar. */
   initialPosition: number;
   etaSeconds: number;
-  /** Diisi saat ADMITTED: batas akhir TTL Booking (server-authoritative). */
+  token?: string;
+  speedPerMin?: number;
+  trafficStability?: string;
   bookingExpiresAt?: string;
-  /** Saran interval polling berikutnya dari server (SPEC §4.3). */
   retryAfterMs: number;
 }
 
@@ -57,20 +63,30 @@ export interface BookingItem {
 
 export interface Booking {
   id: string;
-  /** Kode tampilan, mis. "RB-00912". */
   code: string;
   eventId: string;
   eventName: string;
+  tourName?: string;
   nik?: string;
+  customerName?: string;
+  customerEmail?: string;
   items: BookingItem[];
+  subtotal: number;
+  taxAmount: number;
+  platformFee: number;
   totalAmount: number;
   status: BookingStatus;
   paymentExpiresAt: string;
+  vaNumber?: string;
+  idempotencyKey?: string;
+  ticketCodes?: string[];
 }
 
 export interface CreateBookingInput {
   eventId: string;
   nik: string;
+  customerName?: string;
+  customerEmail?: string;
   items: Array<{ categoryId: string; qty: number }>;
 }
 
@@ -81,9 +97,11 @@ export type PaymentMethodId = "VIRTUAL_ACCOUNT" | "E_WALLET" | "BANK_TRANSFER";
 export interface PaymentMethod {
   id: PaymentMethodId;
   label: string;
+  description?: string;
+  badge?: string;
 }
 
-/* ───────── "Your Queue" (BRAINSTORM §3.2) ───────── */
+/* ───────── "Your Queue" ───────── */
 
 export type ActiveSessionKind = "WAITING" | "BOOKING" | "PAYMENT";
 
@@ -91,10 +109,7 @@ export interface ActiveSession {
   kind: ActiveSessionKind;
   eventId: string;
   eventName: string;
-  /** Hanya untuk WAITING. */
   position?: number;
-  /** Hanya untuk BOOKING & PAYMENT: batas waktu sesi. */
   expiresAt?: string;
-  /** Hanya untuk PAYMENT. */
   bookingId?: string;
 }

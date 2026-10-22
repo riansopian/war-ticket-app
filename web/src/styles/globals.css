@@ -4,32 +4,31 @@
 
 @layer base {
   :root {
-    --background: 210 40% 98%;
+    --background: 210 25% 97%;
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
-    /* violet-700 */
-    --primary: 263 70% 50%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 250 100% 97%;
-    --secondary-foreground: 263 70% 40%;
-    --muted: 214 32% 91%;
-    --muted-foreground: 215 16% 47%;
-    --accent: 250 100% 97%;
-    --accent-foreground: 263 70% 40%;
-    --destructive: 0 72% 51%;
+    /* Amber/Orange Primary from Figma design (#f59e0b) */
+    --primary: 38 92% 50%;
+    --primary-foreground: 24 10% 8%;
+    --secondary: 40 100% 96%;
+    --secondary-foreground: 38 92% 28%;
+    --muted: 214 32% 92%;
+    --muted-foreground: 215 16% 46%;
+    --accent: 40 100% 96%;
+    --accent-foreground: 38 92% 28%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --success: 142 71% 35%;
+    --success: 154 75% 36%;
     --success-foreground: 0 0% 100%;
-    --warning: 32 95% 44%;
-    --warning-foreground: 0 0% 100%;
-    /* slate-700 header bar */
-    --header: 215 25% 27%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 24 10% 8%;
+    --header: 222 47% 11%;
     --header-foreground: 0 0% 100%;
-    --border: 214 32% 85%;
-    --input: 214 32% 85%;
-    --ring: 263 70% 50%;
-    --radius: 0.75rem;
+    --border: 214 32% 88%;
+    --input: 214 32% 88%;
+    --ring: 38 92% 50%;
+    --radius: 0.85rem;
   }
 }
 
@@ -39,6 +38,36 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   }
+}
+
+/* Custom concert ticket notch effect */
+.ticket-notch-left {
+  position: relative;
+}
+.ticket-notch-left::before {
+  content: "";
+  position: absolute;
+  left: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  border-radius: 9999px;
+  background-color: hsl(var(--background));
+}
+.ticket-notch-right {
+  position: relative;
+}
+.ticket-notch-right::after {
+  content: "";
+  position: absolute;
+  right: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  border-radius: 9999px;
+  background-color: hsl(var(--background));
 }

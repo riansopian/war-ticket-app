@@ -1,6 +1,7 @@
 /**
  * "Database" in-memory yang dipersist ke localStorage supaya sesi antrian/booking
  * bertahan saat refresh (FR-10) dan bisa dilanjutkan dari "Your Queue".
+ * Diperbarui untuk mendukung data set realistik Figma Revamp.
  */
 
 export interface CategoryRecord {
@@ -8,23 +9,30 @@ export interface CategoryRecord {
   name: string;
   price: number;
   available: number;
-  /** Stok yang sedang di-hold (booking/payment berjalan). */
   held: number;
+  description?: string;
+  tag?: string;
 }
 
 export interface EventRecord {
   id: string;
   name: string;
+  tourName?: string;
   city: string;
   venue: string;
   startsAt: string;
   saleOpensAt: string;
+  capacityPerMin?: string;
+  remainingTicketsText?: string;
+  startingPrice?: number;
+  gateInfo?: string;
   categories: CategoryRecord[];
 }
 
 export interface QueueRecord {
   eventId: string;
   joinedAt: number;
+  token?: string;
 }
 
 export interface BookingRecord {
@@ -32,9 +40,13 @@ export interface BookingRecord {
   code: string;
   eventId: string;
   nik?: string;
+  customerName?: string;
+  customerEmail?: string;
   items: Array<{ categoryId: string; qty: number }>;
   status: "HELD" | "PAID" | "EXPIRED";
   paymentExpiresAt: number;
+  vaNumber?: string;
+  idempotencyKey?: string;
 }
 
 export interface DbState {
@@ -44,88 +56,121 @@ export interface DbState {
   bookingSeq: number;
 }
 
-const DB_KEY = "rusuh.mock.db.v1";
+const DB_KEY = "rusuh.mock.db.v2";
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
 
 function seed(): DbState {
   const now = Date.now();
   const past = new Date(now - DAY).toISOString();
+  const future1 = new Date(now + 23 * HOUR + 45 * 60000).toISOString();
+  const future2 = new Date(now + 3 * DAY).toISOString();
+
   const cat = (
     id: string,
     name: string,
     price: number,
     available: number,
     held = 0,
-  ): CategoryRecord => ({ id, name, price, available, held });
+    description?: string,
+    tag?: string,
+  ): CategoryRecord => ({ id, name, price, available, held, description, tag });
 
   return {
-    bookingSeq: 911,
+    bookingSeq: 88191,
     queues: {},
     bookings: {},
     events: [
       {
-        id: "konser-a",
-        name: "Konser A — Jakarta",
-        city: "Jakarta",
-        venue: "GBK",
-        startsAt: "2026-12-25T19:00:00+07:00",
+        id: "deploy-jumat-sore",
+        name: "Deploy Jumat Sore Live 2025",
+        tourName: "Sunset Sound Tour",
+        city: "Jakarta Pusat",
+        venue: "Stadion Madya GBK, Jakarta Pusat",
+        startsAt: "2025-12-14T18:30:00+07:00",
         saleOpensAt: past,
+        capacityPerMin: "~1.200 org/mnt",
+        remainingTicketsText: "2.100 tiket (Tersisa 32%)",
+        startingPrice: 400000,
+        gateInfo: "Stadion Madya GBK Gate B (Pintu Selatan)",
         categories: [
-          cat("vip", "VIP", 1_500_000, 12, 4),
-          cat("festival", "Festival", 850_000, 240, 20),
-          cat("tribune", "Tribune", 500_000, 0),
+          cat(
+            "cat-1",
+            "CAT 1 Sunset Floor",
+            950000,
+            412,
+            18,
+            "Standing Festival • Area Depan Panggung",
+            "Tersedia: 412 tiket",
+          ),
+          cat(
+            "cat-vip",
+            "VIP Sunset Lounge",
+            1850000,
+            42,
+            6,
+            "Numbered Seat • Free Lounge Access & F&B",
+            "Stok Terbatas: 42",
+          ),
+          cat(
+            "cat-2",
+            "CAT 2 Tribune Seated",
+            650000,
+            180,
+            12,
+            "Free Seating • Pemandangan Panggung Center",
+            "Tersedia: 180 tiket",
+          ),
+          cat(
+            "cat-3",
+            "CAT 3 Tribune Upper",
+            400000,
+            0,
+            0,
+            "Tribun Atas Sayap Kiri & Kanan",
+            "HABIS / SOLD OUT",
+          ),
         ],
       },
       {
-        id: "konser-b",
-        name: "Konser B — Bandung",
-        city: "Bandung",
-        venue: "GOR Saparua",
-        startsAt: "2027-01-10T19:00:00+07:00",
-        saleOpensAt: past,
+        id: "indie-soundscape",
+        name: "Indie Soundscape Festival 2025",
+        tourName: "Indoor Stage Edition",
+        city: "Jakarta Pusat",
+        venue: "Tennis Indoor Senayan, Jakarta",
+        startsAt: "2025-12-20T19:00:00+07:00",
+        saleOpensAt: future1,
+        startingPrice: 350000,
         categories: [
-          cat("vip", "VIP", 1_300_000, 0),
-          cat("festival", "Festival", 750_000, 0),
+          cat("is-fest", "Festival", 550000, 300, 0),
+          cat("is-trib", "Tribun", 350000, 200, 0),
         ],
       },
       {
-        id: "konser-c",
-        name: "Konser C — Surabaya",
-        city: "Surabaya",
-        venue: "GOR",
-        startsAt: "2027-02-02T19:00:00+07:00",
-        saleOpensAt: past,
+        id: "java-rock-wave",
+        name: "Java Rock Wave 2025",
+        tourName: "Heavy Sound Open Space",
+        city: "Jakarta Utara",
+        venue: "JIExpo Kemayoran Open Space",
+        startsAt: "2025-11-18T12:00:00+07:00",
+        saleOpensAt: future2,
+        startingPrice: 500000,
         categories: [
-          cat("vip", "VIP", 1_200_000, 30),
-          cat("festival", "Festival", 700_000, 300),
-          cat("tribune", "Tribune", 400_000, 150),
+          cat("jrw-rock", "Rock Pit", 800000, 500, 0),
+          cat("jrw-gen", "General Admission", 500000, 800, 0),
         ],
       },
       {
-        id: "konser-d",
-        name: "Konser D — Yogyakarta",
-        city: "Yogyakarta",
-        venue: "Stadion Mandala Krida",
-        startsAt: "2027-03-14T19:00:00+07:00",
-        // Belum dibuka: tampil sebagai "Buka pukul ..." (BRAINSTORM §3.1)
-        saleOpensAt: new Date(now + 2 * HOUR).toISOString(),
-        categories: [
-          cat("vip", "VIP", 1_800_000, 100),
-          cat("festival", "Festival", 950_000, 500),
-        ],
-      },
-      {
-        id: "konser-e",
-        name: "Konser E — Medan",
-        city: "Medan",
-        venue: "Stadion Teladan",
-        startsAt: "2027-04-03T19:00:00+07:00",
+        id: "sunset-acoustic",
+        name: "The Sunset Acoustic Sessions",
+        tourName: "Intimate Hall",
+        city: "Jakarta Pusat",
+        venue: "Taman Ismail Marzuki (TIM), Jakarta",
+        startsAt: "2025-10-10T19:00:00+07:00",
         saleOpensAt: past,
-        // Hampir habis: sisa kuota < tiket yang sedang diproses (BRAINSTORM §3.5)
+        startingPrice: 450000,
         categories: [
-          cat("vip", "VIP", 2_000_000, 3, 8),
-          cat("festival", "Festival", 900_000, 4, 10),
+          cat("sa-hall", "All Seating Hall", 450000, 0, 0),
         ],
       },
     ],
@@ -133,21 +178,46 @@ function seed(): DbState {
 }
 
 export function loadDb(): DbState {
+  if (typeof window === "undefined") return seed();
   try {
-    const raw = localStorage.getItem(DB_KEY);
-    if (raw) return JSON.parse(raw) as DbState;
+    const raw = window.localStorage.getItem(DB_KEY);
+    if (!raw) {
+      const fresh = seed();
+      saveDb(fresh);
+      return fresh;
+    }
+    const parsed = JSON.parse(raw) as DbState;
+    if (!parsed.events || !parsed.queues || !parsed.bookings) {
+      const fresh = seed();
+      saveDb(fresh);
+      return fresh;
+    }
+    return parsed;
   } catch {
-    /* data korup → seed ulang */
+    return seed();
+  }
+}
+
+export function saveDb(state: DbState): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(DB_KEY, JSON.stringify(state));
+  } catch {
+    // quota exceeded / private mode — fallback in-memory
+  }
+}
+
+export function resetDb(): DbState {
+  if (typeof window !== "undefined") {
+    try {
+      window.localStorage.removeItem(DB_KEY);
+    } catch {
+      // ignore
+    }
   }
   const fresh = seed();
   saveDb(fresh);
   return fresh;
 }
 
-export function saveDb(db: DbState): void {
-  localStorage.setItem(DB_KEY, JSON.stringify(db));
-}
-
-export function resetMockDb(): void {
-  localStorage.removeItem(DB_KEY);
-}
+export const resetMockDb = resetDb;

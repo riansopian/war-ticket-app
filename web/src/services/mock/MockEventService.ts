@@ -20,11 +20,14 @@ export class MockEventService implements EventService {
     return withDb((db) => {
       const e = db.events.find((x) => x.id === eventId);
       if (!e) throw new ApiError("NOT_FOUND", "Event tidak ditemukan.");
-      return e.categories.map(({ id, name, price, available }) => ({
+      return e.categories.map(({ id, name, price, available, description, tag }) => ({
         id,
         name,
         price,
         available,
+        description,
+        tag,
+        isSoldOut: available <= 0,
       }));
     });
   }

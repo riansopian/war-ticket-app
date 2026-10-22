@@ -18,16 +18,38 @@ export function toBooking(db: DbState, rec: BookingRecord): Booking {
       unitPrice: cat.price,
     };
   });
+  const subtotal = items.reduce((s, i) => s + i.qty * i.unitPrice, 0);
+  const taxAmount = Math.round(subtotal * 0.1);
+  const platformFee = items.length > 0 ? 10000 : 0;
+  const totalAmount = subtotal + taxAmount + platformFee;
+
+  const ticketCodes: string[] = [];
+  let seq = 584210;
+  for (const item of items) {
+    for (let k = 0; k < item.qty; k++) {
+      ticketCodes.push(`DJS-CAT1-${seq++}`);
+    }
+  }
+
   return {
     id: rec.id,
     code: rec.code,
     eventId: rec.eventId,
     eventName: event.name,
-    nik: rec.nik,
+    tourName: event.tourName || "Sunset Sound Tour",
+    nik: rec.nik || "3171052809960002",
+    customerName: rec.customerName || "Budi Santoso",
+    customerEmail: rec.customerEmail || "budi.santoso@deployjumat.id",
     items,
-    totalAmount: items.reduce((s, i) => s + i.qty * i.unitPrice, 0),
+    subtotal,
+    taxAmount,
+    platformFee,
+    totalAmount,
     status: rec.status,
     paymentExpiresAt: new Date(rec.paymentExpiresAt).toISOString(),
+    vaNumber: rec.vaNumber || "8801 2398 4102 9312",
+    idempotencyKey: rec.idempotencyKey || "IDEM-PAY-9842F",
+    ticketCodes,
   };
 }
 
@@ -77,12 +99,16 @@ export class MockBookingService implements BookingService {
       db.bookingSeq += 1;
       const rec: BookingRecord = {
         id: `bk-${db.bookingSeq}`,
-        code: `RB-${String(db.bookingSeq).padStart(5, "0")}`,
+        code: `DJS-2025-${db.bookingSeq}`,
         eventId: input.eventId,
         nik: input.nik,
+        customerName: input.customerName || "Budi Santoso",
+        customerEmail: input.customerEmail || "budi.santoso@deployjumat.id",
         items,
         status: "HELD",
         paymentExpiresAt: Date.now() + getMockConfig().paymentTtlMs,
+        vaNumber: "8801 2398 4102 9312",
+        idempotencyKey: "IDEM-PAY-9842F",
       };
       db.bookings[rec.id] = rec;
       // Slot antrian dilepas begitu booking dibuat (sesi pindah ke payment).

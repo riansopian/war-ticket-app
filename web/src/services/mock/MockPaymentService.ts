@@ -6,9 +6,23 @@ import { toBooking } from "./MockBookingService";
 import { withDb } from "./withDb";
 
 const METHODS: PaymentMethod[] = [
-  { id: "VIRTUAL_ACCOUNT", label: "Virtual Account" },
-  { id: "E_WALLET", label: "E-Wallet" },
-  { id: "BANK_TRANSFER", label: "Transfer Bank" },
+  {
+    id: "VIRTUAL_ACCOUNT",
+    label: "Virtual Account (BCA VA)",
+    description: "Konfirmasi instan otomatis tanpa bukti transfer",
+    badge: "Tersambung API",
+  },
+  {
+    id: "E_WALLET",
+    label: "Instant QRIS",
+    description: "Gopay, OVO, Dana, ShopeePay, LinkAja",
+    badge: "AUTO",
+  },
+  {
+    id: "BANK_TRANSFER",
+    label: "Kartu Kredit / Debit Online",
+    description: "Visa, Mastercard, JCB (3D Secure OTP)",
+  },
 ];
 
 export class MockPaymentService implements PaymentService {
