@@ -18,6 +18,7 @@ import { MAX_TICKETS_PER_ORDER } from "@/domain/rules";
 import { useAsync } from "@/hooks/useAsync";
 import { useCountdown } from "@/hooks/useCountdown";
 import { formatCountdown, formatRupiah } from "@/lib/format";
+import { BookingExpiredModal } from "../components/BookingExpiredModal";
 
 export function BookingPage() {
   const { eventId = "deploy-jumat-sore" } = useParams();
@@ -40,13 +41,16 @@ export function BookingPage() {
   });
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [formError, setFormError] = React.useState<string | null>(null);
+  const [isExpired, setIsExpired] = React.useState(false);
 
   // Ambil queue status untuk membaca bookingExpiresAt
   React.useEffect(() => {
     queue.getStatus(eventId).then((s) => {
       if (s.state === "ADMITTED" && s.bookingExpiresAt) {
         setBookingExpiresAt(s.bookingExpiresAt);
-      } else if (s.state === "EXPIRED" || s.state === "NONE") {
+      } else if (s.state === "EXPIRED") {
+        setIsExpired(true);
+      } else if (s.state === "NONE") {
         navigate(ROUTES.home, {
           replace: true,
           state: {
@@ -58,12 +62,7 @@ export function BookingPage() {
   }, [queue, eventId, navigate]);
 
   const handleExpire = () => {
-    navigate(ROUTES.home, {
-      replace: true,
-      state: {
-        notice: "Batas waktu pemesanan telah habis. Sesi Anda dilepas untuk antrean berikutnya.",
-      },
-    });
+    setIsExpired(true);
   };
 
   const { remainingMs } = useCountdown(bookingExpiresAt, handleExpire);
@@ -141,11 +140,34 @@ export function BookingPage() {
             Sesi Pemesanan Diamankan. Tiket di dalam keranjang Anda ditahan sementara.
           </p>
         </div>
-        <div className="flex items-center gap-1.5 font-mono text-xs sm:text-sm font-black bg-rose-700/80 px-3 py-1 rounded-xl self-start sm:self-auto border border-rose-500/50">
-          <span>SISA WAKTU:</span>
-          <span>{formatCountdown(remainingMs)}</span>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <div className="flex items-center gap-1.5 font-mono text-xs sm:text-sm font-black bg-rose-700/80 px-3 py-1 rounded-xl border border-rose-500/50">
+            <span>SISA WAKTU:</span>
+            <span>{formatCountdown(remainingMs)}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsExpired(true)}
+            className="text-[10px] font-bold text-rose-200 hover:text-white bg-rose-700/60 px-2 py-1 rounded-lg border border-rose-500/40 transition-colors"
+            title="Simulasikan Waktu Pemesanan Habis"
+          >
+            Tes Expired
+          </button>
         </div>
       </div>
+
+      {/* ================= MODAL WAKTU PEMESANAN HABIS (Figma Design) ================= */}
+      <BookingExpiredModal
+        isOpen={isExpired}
+        eventId={eventId}
+        sessionCode="TK - 8829"
+        itemsSummary={
+          activeItems.length > 0
+            ? `${activeItems.map((i) => `${i.qty}× ${i.category.name}`).join(", ")} • Botanical Arena`
+            : "2× CAT 2 • Pakis Ground"
+        }
+        onClose={() => setIsExpired(false)}
+      />
 
       {/* ================= ERROR ALERT ================= */}
       {formError ? (

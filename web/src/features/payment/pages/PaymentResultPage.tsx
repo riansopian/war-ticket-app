@@ -1,5 +1,5 @@
 import {
-  AlertCircle,
+  AlarmClockOff,
   ArrowLeft,
   Calendar,
   CheckCircle2,
@@ -10,6 +10,7 @@ import {
   QrCode,
   RotateCcw,
   Share2,
+  ShieldCheck,
   Ticket,
   Wallet,
 } from "lucide-react";
@@ -106,30 +107,91 @@ export function PaymentResultPage() {
     );
   }
 
-  // ================= SCENARIO 1: EXPIRED / CANCELLED =================
+  // ================= SCENARIO 1: EXPIRED / CANCELLED (Figma Design) =================
   if (booking.status === "EXPIRED") {
-    return (
-      <div className="mx-auto max-w-xl space-y-6 text-center py-8">
-        <div className="mx-auto flex size-16 items-center justify-center rounded-3xl bg-rose-100 text-rose-600">
-          <AlertCircle className="size-8" />
-        </div>
-        <div className="space-y-2">
-          <h1 className="text-2xl font-black text-slate-900">
-            Sesi Reservasi Berakhir
-          </h1>
-          <p className="text-xs text-slate-500 leading-relaxed max-w-md mx-auto">
-            Batas waktu pembayaran 10 menit telah berakhir. Tiket yang sebelumnya ditahan telah dilepaskan kembali ke kuota antrean umum.
-          </p>
-        </div>
+    const itemsSummary =
+      booking.items && booking.items.length > 0
+        ? `${booking.items.map((i) => `${i.qty}× ${i.categoryName}`).join(", ")} • Botanical Arena`
+        : "2× CAT 2 • Pakis Ground";
 
-        <div className="pt-2">
-          <Button
-            onClick={() => navigate(ROUTES.waitingRoom(booking.eventId))}
-            className="bg-rose-600 hover:bg-rose-700 text-white font-bold px-6 py-2.5 rounded-xl shadow-md text-xs"
-          >
-            <RotateCcw className="mr-1.5 size-4" />
-            Masuk Kembali ke Antrean
-          </Button>
+    return (
+      <div className="mx-auto max-w-md py-6 sm:py-12 animate-in fade-in duration-200">
+        <div className="relative overflow-hidden rounded-3xl bg-white p-6 sm:p-7 shadow-2xl border border-slate-100 text-center space-y-5">
+          {/* Top Gradient Bar */}
+          <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-rose-500 via-rose-600 to-emerald-600" />
+
+          {/* Glowing Red Alarm Icon */}
+          <div className="relative mx-auto flex size-20 items-center justify-center pt-1">
+            <div className="absolute inset-0 rounded-full bg-rose-500/20 blur-xl" />
+            <div className="relative flex size-14 items-center justify-center rounded-full bg-rose-600 text-white shadow-lg shadow-rose-600/30">
+              <AlarmClockOff className="size-7" />
+            </div>
+          </div>
+
+          {/* Status Badge */}
+          <div>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-3.5 py-1 text-[11px] font-black uppercase tracking-wider text-rose-600 border border-rose-100">
+              <span className="size-1.5 rounded-full bg-rose-600 animate-pulse" />
+              SESI RESERVASI KEDALUWARSA
+            </span>
+          </div>
+
+          {/* Header & Description */}
+          <div className="space-y-2">
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              Waktu Pemesanan Habis
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-sm mx-auto">
+              Batas waktu <strong>5 menit</strong> untuk reservasi tiket ini telah berakhir. Tiket yang Anda tahan telah dikembalikan ke pool antrean demi keadilan pembeli lain.
+            </p>
+          </div>
+
+          {/* Session Details Box (Figma Screen) */}
+          <div className="flex items-center justify-between rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5 text-left">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white text-slate-700 shadow-2xs border border-slate-200/80">
+                <Ticket className="size-5 text-slate-600" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                  SESI TERAKHIR #{booking.code || "TK - 8829"}
+                </p>
+                <p className="truncate text-xs font-black text-slate-900">
+                  {itemsSummary}
+                </p>
+              </div>
+            </div>
+
+            <span className="rounded-lg bg-rose-50 px-2 py-1 text-[10px] font-black text-rose-600 border border-rose-100 shrink-0">
+              Rilis Otomatis
+            </span>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row items-center gap-2.5 pt-1">
+            <Button
+              onClick={() => navigate(ROUTES.waitingRoom(booking.eventId))}
+              className="w-full sm:flex-1 bg-slate-950 hover:bg-slate-800 text-white font-black py-3 rounded-2xl text-xs gap-2 shadow-sm"
+            >
+              <RotateCcw className="size-3.5" />
+              Antre Ulang Sekarang
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={() => navigate(ROUTES.home)}
+              className="w-full sm:flex-1 bg-slate-100 hover:bg-slate-200 text-slate-800 border-transparent font-bold py-3 rounded-2xl text-xs gap-2"
+            >
+              <Calendar className="size-3.5 text-slate-600" />
+              Lihat Jadwal Konser Lain
+            </Button>
+          </div>
+
+          {/* Subtext Note */}
+          <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-500 pt-1 border-t border-slate-100">
+            <ShieldCheck className="size-3.5 text-emerald-600 shrink-0" />
+            <span>Sistem antrean Booket FairQueue menjamin kesempatan yang adil bagi setiap penikmat musik.</span>
+          </div>
         </div>
       </div>
     );

@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import type { Booking, PaymentMethodId } from "@/domain/types";
 import { useCountdown } from "@/hooks/useCountdown";
 import { formatCountdown, formatRupiah } from "@/lib/format";
+import { BookingExpiredModal } from "@/features/booking/components/BookingExpiredModal";
 
 export function PaymentPage() {
   const { bookingId = "" } = useParams<{ bookingId: string }>();
@@ -37,6 +38,7 @@ export function PaymentPage() {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [copiedVa, setCopiedVa] = React.useState(false);
+  const [isExpired, setIsExpired] = React.useState(false);
 
   const loadData = React.useCallback(async () => {
     if (!bookingId) return;
@@ -45,8 +47,10 @@ export function PaymentPage() {
     try {
       const b = await bookingService.get(bookingId);
       setBooking(b);
-      if (b.status === "PAID" || b.status === "EXPIRED") {
+      if (b.status === "PAID") {
         navigate(ROUTES.paymentResult(b.id), { replace: true });
+      } else if (b.status === "EXPIRED") {
+        setIsExpired(true);
       }
     } catch (err) {
       setError(
@@ -62,10 +66,8 @@ export function PaymentPage() {
   }, [loadData]);
 
   const handleExpire = React.useCallback(() => {
-    if (bookingId) {
-      navigate(ROUTES.paymentResult(bookingId), { replace: true });
-    }
-  }, [bookingId, navigate]);
+    setIsExpired(true);
+  }, []);
 
   const { remainingMs } = useCountdown(booking?.paymentExpiresAt, handleExpire);
 
@@ -131,11 +133,34 @@ export function PaymentPage() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 font-mono text-sm font-black bg-rose-700/80 px-3 py-1.5 rounded-xl self-start sm:self-auto border border-rose-500/50">
-          <span>SISA WAKTU:</span>
-          <span>{formatCountdown(remainingMs)}</span>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <div className="flex items-center gap-1.5 font-mono text-sm font-black bg-rose-700/80 px-3 py-1.5 rounded-xl border border-rose-500/50">
+            <span>SISA WAKTU:</span>
+            <span>{formatCountdown(remainingMs)}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsExpired(true)}
+            className="text-[10px] font-bold text-rose-200 hover:text-white bg-rose-700/60 px-2 py-1 rounded-lg border border-rose-500/40 transition-colors"
+            title="Simulasikan Waktu Pembayaran Habis"
+          >
+            Tes Expired
+          </button>
         </div>
       </div>
+
+      {/* ================= MODAL WAKTU PEMESANAN HABIS (Figma Design) ================= */}
+      <BookingExpiredModal
+        isOpen={isExpired}
+        eventId={booking?.eventId || "deploy-jumat-sore"}
+        sessionCode={booking?.code?.replace("TRX-", "TK-") || "TK - 8829"}
+        itemsSummary={
+          booking?.items && booking.items.length > 0
+            ? `${booking.items.map((i) => `${i.qty}× ${i.categoryName}`).join(", ")} • Botanical Arena`
+            : "2× CAT 2 • Pakis Ground"
+        }
+        onClose={() => setIsExpired(false)}
+      />
 
       {error ? (
         <div className="flex items-center gap-2 rounded-xl border border-rose-300 bg-rose-50 p-3 text-xs font-semibold text-rose-900">
