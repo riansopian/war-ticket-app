@@ -24,6 +24,7 @@ export function toEvent(e: EventRecord): Event {
   return {
     id: e.id,
     name: e.name,
+    subtitle: e.subtitle,
     tourName: e.tourName,
     city: e.city,
     venue: e.venue,
@@ -33,6 +34,11 @@ export function toEvent(e: EventRecord): Event {
     remainingTicketsText: e.remainingTicketsText,
     startingPrice: e.startingPrice,
     gateInfo: e.gateInfo,
+    presalePhase: e.presalePhase,
+    totalCapacity: e.totalCapacity,
+    soldCount: e.soldCount,
+    fillPercent: e.fillPercent,
+    imageUrl: e.imageUrl,
     status: deriveEventStatus(e),
   };
 }
@@ -47,29 +53,34 @@ export function computeQueueStatus(
     return {
       state: "NONE",
       position: 0,
-      initialPosition: cfg.initialQueuePosition,
+      initialPosition: 4790,
       etaSeconds: 0,
       retryAfterMs: cfg.retryAfterMs,
+      token: "BK-99420-BOTANIC",
+      speedPerMin: 75,
+      trafficStability: "99.8%",
+      totalQueueVisitors: 12490,
     };
   }
   const elapsedSec = (now - q.joinedAt) / 1000;
   const position = Math.max(
     0,
-    Math.ceil(cfg.initialQueuePosition - elapsedSec * cfg.admissionRatePerSec),
+    Math.ceil(4790 - elapsedSec * cfg.admissionRatePerSec),
   );
   const admittedAt =
-    q.joinedAt + (cfg.initialQueuePosition / cfg.admissionRatePerSec) * 1000;
+    q.joinedAt + (4790 / cfg.admissionRatePerSec) * 1000;
   // TTL Booking mulai sejak giliran tiba (BRAINSTORM §3.3), bukan sejak halaman dibuka.
   const bookingExpiresAt = admittedAt + cfg.bookingTtlMs;
 
   const base = {
     position,
-    initialPosition: cfg.initialQueuePosition,
+    initialPosition: 4790,
     etaSeconds: Math.ceil(position / cfg.admissionRatePerSec),
     retryAfterMs: cfg.retryAfterMs,
-    token: q.token || "SEC-Q928-ACTIVE",
-    speedPerMin: 250,
+    token: q.token || "BK-99420-BOTANIC",
+    speedPerMin: 75,
     trafficStability: "99.8%",
+    totalQueueVisitors: 12490,
   };
   if (position > 0) return { ...base, state: "WAITING" };
   if (now <= bookingExpiresAt) {

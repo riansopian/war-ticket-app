@@ -19,15 +19,15 @@ export function toBooking(db: DbState, rec: BookingRecord): Booking {
     };
   });
   const subtotal = items.reduce((s, i) => s + i.qty * i.unitPrice, 0);
-  const taxAmount = Math.round(subtotal * 0.1);
-  const platformFee = items.length > 0 ? 10000 : 0;
+  const taxAmount = Math.round(subtotal * 0.1); // Pajak Daerah 10%
+  const platformFee = items.length > 0 ? 15000 : 0; // Biaya Layanan Rp 15.000
   const totalAmount = subtotal + taxAmount + platformFee;
 
   const ticketCodes: string[] = [];
-  let seq = 584210;
+  let seq = 99418;
   for (const item of items) {
     for (let k = 0; k < item.qty; k++) {
-      ticketCodes.push(`DJS-CAT1-${seq++}`);
+      ticketCodes.push(`BKT-VIP-2025-${seq++}`);
     }
   }
 
@@ -36,10 +36,11 @@ export function toBooking(db: DbState, rec: BookingRecord): Booking {
     code: rec.code,
     eventId: rec.eventId,
     eventName: event.name,
-    tourName: event.tourName || "Sunset Sound Tour",
-    nik: rec.nik || "3171052809960002",
-    customerName: rec.customerName || "Budi Santoso",
-    customerEmail: rec.customerEmail || "budi.santoso@deployjumat.id",
+    tourName: event.tourName || "Tur Musik Botani 2025",
+    nik: rec.nik || "3174052309980004",
+    customerName: rec.customerName || "Rian Adi Nugroho",
+    customerEmail: rec.customerEmail || "rian.nugroho@mail.com",
+    customerPhone: rec.customerPhone || "081298457890",
     items,
     subtotal,
     taxAmount,
@@ -47,8 +48,10 @@ export function toBooking(db: DbState, rec: BookingRecord): Booking {
     totalAmount,
     status: rec.status,
     paymentExpiresAt: new Date(rec.paymentExpiresAt).toISOString(),
-    vaNumber: rec.vaNumber || "8801 2398 4102 9312",
+    vaNumber: rec.vaNumber || "8277 0812 9845 7890",
     idempotencyKey: rec.idempotencyKey || "IDEM-PAY-9842F",
+    gateInfo: rec.gateInfo || "Gate 4B Level 1",
+    rowSeat: rec.rowSeat || "Free Seating Lounge (Row A)",
     ticketCodes,
   };
 }
@@ -99,16 +102,19 @@ export class MockBookingService implements BookingService {
       db.bookingSeq += 1;
       const rec: BookingRecord = {
         id: `bk-${db.bookingSeq}`,
-        code: `DJS-2025-${db.bookingSeq}`,
+        code: `TRX-882941-BKT`,
         eventId: input.eventId,
         nik: input.nik,
-        customerName: input.customerName || "Budi Santoso",
-        customerEmail: input.customerEmail || "budi.santoso@deployjumat.id",
+        customerName: input.customerName || "Rian Adi Nugroho",
+        customerEmail: input.customerEmail || "rian.nugroho@mail.com",
+        customerPhone: input.customerPhone || "081298457890",
         items,
         status: "HELD",
         paymentExpiresAt: Date.now() + getMockConfig().paymentTtlMs,
-        vaNumber: "8801 2398 4102 9312",
+        vaNumber: "8277 0812 9845 7890",
         idempotencyKey: "IDEM-PAY-9842F",
+        gateInfo: "Gate 4B Level 1",
+        rowSeat: "Free Seating Lounge (Row A)",
       };
       db.bookings[rec.id] = rec;
       // Slot antrian dilepas begitu booking dibuat (sesi pindah ke payment).

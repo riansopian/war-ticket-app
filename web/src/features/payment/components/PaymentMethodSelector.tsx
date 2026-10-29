@@ -1,4 +1,4 @@
-import { Building2, CreditCard, Smartphone } from "lucide-react";
+import { Building2, CreditCard, QrCode, Smartphone } from "lucide-react";
 import * as React from "react";
 
 import { DashedPanel } from "@/components/shared/DashedPanel";
@@ -12,10 +12,17 @@ interface PaymentMethodSelectorProps {
   disabled?: boolean;
 }
 
-const methodIcons: Record<PaymentMethodId, React.ReactNode> = {
+const methodIcons: Partial<Record<PaymentMethodId, React.ReactNode>> = {
   VIRTUAL_ACCOUNT: <CreditCard className="size-5 text-sky-600" />,
+  BCA_VA: <CreditCard className="size-5 text-sky-600" />,
+  MANDIRI_VA: <CreditCard className="size-5 text-sky-600" />,
+  BRI_VA: <CreditCard className="size-5 text-sky-600" />,
+  BNI_VA: <CreditCard className="size-5 text-sky-600" />,
   E_WALLET: <Smartphone className="size-5 text-indigo-600" />,
+  QRIS: <QrCode className="size-5 text-emerald-600" />,
+  GOPAY: <Smartphone className="size-5 text-emerald-600" />,
   BANK_TRANSFER: <Building2 className="size-5 text-slate-600" />,
+  CREDIT_CARD: <CreditCard className="size-5 text-rose-600" />,
 };
 
 export function PaymentMethodSelector({
@@ -33,6 +40,8 @@ export function PaymentMethodSelector({
     >
       {methods.map((method) => {
         const isSelected = selectedMethod === method.id;
+        const icon = methodIcons[method.id] || <CreditCard className="size-5 text-slate-600" />;
+
         return (
           <label
             key={method.id}
@@ -44,7 +53,7 @@ export function PaymentMethodSelector({
               className="flex items-center justify-between p-4 transition-all hover:border-primary/80"
             >
               <div className="flex items-center gap-3">
-                {methodIcons[method.id]}
+                {icon}
                 <span className="font-bold text-foreground">
                   {method.label}
                 </span>

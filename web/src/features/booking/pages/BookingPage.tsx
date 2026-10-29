@@ -1,10 +1,11 @@
 import {
   AlertCircle,
-  CheckCircle2,
+  ArrowRight,
+  Check,
   Clock,
-  Lock,
   Minus,
   Plus,
+  ShieldCheck,
 } from "lucide-react";
 import * as React from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -12,7 +13,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ROUTES } from "@/app/routes";
 import { useServices } from "@/app/ServicesContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MAX_TICKETS_PER_ORDER } from "@/domain/rules";
 import { useAsync } from "@/hooks/useAsync";
@@ -30,16 +30,18 @@ export function BookingPage() {
   );
 
   const [bookingExpiresAt, setBookingExpiresAt] = React.useState<string>();
-  const [nik, setNik] = React.useState("3171052809960002");
-  const [customerName, setCustomerName] = React.useState("Budi Santoso");
-  const [customerEmail, setCustomerEmail] = React.useState("budi.santoso@deployjumat.id");
+  const [nik, setNik] = React.useState("3174052309980004");
+  const [customerName, setCustomerName] = React.useState("Rian Adi Nugroho");
+  const [customerEmail, setCustomerEmail] = React.useState("rian.nugroho@mail.com");
+  const [customerPhone, setCustomerPhone] = React.useState("081298457890");
+  const [agreed, setAgreed] = React.useState(true);
   const [quantities, setQuantities] = React.useState<Record<string, number>>({
-    "cat-1": 2, // default 2 tickets on CAT 1 Sunset Floor as in Figma
+    vip: 1, // Default 1x VIP Sunset Lounge as in Figma Screen 3 / Screen 5
   });
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [formError, setFormError] = React.useState<string | null>(null);
 
-  // Ambil queue status untuk membaca bookingExpiresAt otoritatif server
+  // Ambil queue status untuk membaca bookingExpiresAt
   React.useEffect(() => {
     queue.getStatus(eventId).then((s) => {
       if (s.state === "ADMITTED" && s.bookingExpiresAt) {
@@ -48,7 +50,7 @@ export function BookingPage() {
         navigate(ROUTES.home, {
           replace: true,
           state: {
-            notice: "Sesi antrian tidak aktif atau sudah berakhir. Silakan antre kembali.",
+            notice: "Sesi antrean tidak aktif atau sudah berakhir. Silakan antre kembali.",
           },
         });
       }
@@ -59,7 +61,7 @@ export function BookingPage() {
     navigate(ROUTES.home, {
       replace: true,
       state: {
-        notice: "Batas waktu booking 5 menit telah habis. Sesi Anda dilepas untuk antrian berikutnya.",
+        notice: "Batas waktu pemesanan telah habis. Sesi Anda dilepas untuk antrean berikutnya.",
       },
     });
   };
@@ -78,7 +80,7 @@ export function BookingPage() {
     setQuantities((prev) => ({ ...prev, [catId]: next }));
   };
 
-  // Price calculations matching Figma Screen 3
+  // Price calculations matching Figma Screen 3 (Total Rp 2.710.000 for 1x VIP)
   const activeItems = (categories || [])
     .filter((c) => (quantities[c.id] || 0) > 0)
     .map((c) => ({
@@ -88,8 +90,8 @@ export function BookingPage() {
     }));
 
   const subtotal = activeItems.reduce((acc, i) => acc + i.subtotal, 0);
-  const taxAmount = Math.round(subtotal * 0.1); // Pajak 10%
-  const platformFee = totalQty > 0 ? 10000 : 0;
+  const taxAmount = Math.round(subtotal * 0.1); // Pajak Daerah 10%
+  const platformFee = totalQty > 0 ? 15000 : 0; // Biaya Layanan Rp 15.000
   const grandTotal = subtotal + taxAmount + platformFee;
 
   const handleSubmit = async () => {
@@ -99,6 +101,10 @@ export function BookingPage() {
     }
     if (totalQty === 0) {
       setFormError("Pilih minimal 1 tiket untuk melanjutkan.");
+      return;
+    }
+    if (!agreed) {
+      setFormError("Anda harus menyetujui syarat & ketentuan sebelum melanjutkan.");
       return;
     }
     setIsSubmitting(true);
@@ -112,6 +118,7 @@ export function BookingPage() {
         nik,
         customerName,
         customerEmail,
+        customerPhone,
         items,
       });
       navigate(ROUTES.payment(booking.id));
@@ -126,220 +133,129 @@ export function BookingPage() {
 
   return (
     <div className="space-y-6">
-      {/* ================= TOP HEADER PILL BAR ================= */}
-      <div className="flex items-center justify-between rounded-xl bg-white px-4 py-2.5 shadow-sm border border-slate-200">
-        <div className="flex items-center gap-2">
-          <span className="inline-block size-2 rounded-full bg-amber-500 animate-pulse" />
-          <span className="text-xs font-black tracking-wide text-slate-900 uppercase">
-            SESI TIKET AKTIF • Checkout Hold
-          </span>
+      {/* ================= RED COUNTDOWN TOP BANNER (Figma Screen 5 Left) ================= */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-2xl bg-rose-600 px-5 py-3 text-white shadow-md">
+        <div className="flex items-center gap-2.5">
+          <Clock className="size-5 shrink-0 text-white animate-pulse" />
+          <p className="text-xs sm:text-sm font-bold">
+            Sesi Pemesanan Diamankan. Tiket di dalam keranjang Anda ditahan sementara.
+          </p>
         </div>
-        <Badge className="bg-amber-100 text-amber-900 border-amber-300 font-bold text-[10px]">
-          FASE FLASH DROP
-        </Badge>
+        <div className="flex items-center gap-1.5 font-mono text-xs sm:text-sm font-black bg-rose-700/80 px-3 py-1 rounded-xl self-start sm:self-auto border border-rose-500/50">
+          <span>SISA WAKTU:</span>
+          <span>{formatCountdown(remainingMs)}</span>
+        </div>
       </div>
 
-      {/* ================= COUNTDOWN BANNER (Figma Screen 3) ================= */}
-      <div className="rounded-2xl border border-amber-300 bg-amber-50/80 p-4 shadow-sm text-center space-y-1">
-        <div className="flex items-center justify-center gap-2 text-xs font-black uppercase tracking-wider text-amber-900">
-          <Clock className="size-4 text-amber-600 animate-pulse" />
-          <span>Sisa Waktu Sesi Pemilihan</span>
-          <span className="rounded-md bg-slate-900 px-2.5 py-0.5 font-mono text-sm font-black text-amber-400">
-            {formatCountdown(remainingMs)}
-          </span>
-        </div>
-        <p className="text-[11px] text-amber-800">
-          Sesi akan berakhir jika idle dalam 5 menit untuk menjaga keadilan antrean.
-        </p>
-      </div>
-
+      {/* ================= ERROR ALERT ================= */}
       {formError ? (
         <Alert variant="destructive">
           <AlertCircle className="size-4" />
-          <AlertDescription className="text-xs">{formError}</AlertDescription>
+          <AlertDescription className="text-xs font-semibold">
+            {formError}
+          </AlertDescription>
         </Alert>
       ) : null}
 
-      {/* ================= RESPONSIVE LAYOUT (Web 2 Columns) ================= */}
+      {/* ================= MAIN RESPONSIVE GRID (2 Columns) ================= */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        {/* LEFT COLUMN: Steps 1 & 2 (7 Cols) */}
+        {/* LEFT COLUMN: Ticket Selection & Identity Verification (7 Cols) */}
         <div className="space-y-6 lg:col-span-7">
-          {/* STEP 1: Identitas & Validasi NIK (Figma Screen 3) */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
-              <div className="flex items-center gap-2">
-                <span className="flex size-6 items-center justify-center rounded-full bg-amber-500 font-black text-slate-950 text-xs">
-                  1
-                </span>
-                <h3 className="text-sm font-black text-slate-900">
-                  Identitas & Validasi NIK
-                </h3>
+          {/* STEP 1: Pilih Kategori Tiket */}
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h2 className="text-base font-black text-slate-900">
+                  1. Pilih Kategori Tiket
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Pilih kategori tempat duduk atau festival favorit Anda
+                </p>
               </div>
-              <Badge className="bg-slate-100 text-slate-700 font-mono text-[10px] font-bold">
-                NFR-04 ATOMIC
-              </Badge>
-            </div>
-
-            {/* Quota Banner */}
-            <div className="flex items-center justify-between rounded-xl bg-amber-50/70 p-3 text-xs border border-amber-200">
-              <span className="font-bold text-amber-950">
-                KUOTA PER NIK (BR-01): Maks. 3 Tiket / NIK
-              </span>
-              <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 font-bold text-[10px]">
-                • Sisa Kuota: 3
-              </Badge>
-            </div>
-
-            <div className="space-y-3.5 text-xs">
-              {/* NIK Field */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="font-bold text-slate-800">
-                    Nomor Induk Kependudukan (NIK 16 Digit)
-                  </label>
-                  {isNikValid && (
-                    <span className="flex items-center gap-1 font-bold text-emerald-600 text-[11px]">
-                      <CheckCircle2 className="size-3.5" /> Format NIK Valid
-                    </span>
-                  )}
-                </div>
-                <input
-                  type="text"
-                  maxLength={16}
-                  value={nik}
-                  onChange={(e) => setNik(e.target.value.replace(/\D/g, ""))}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 font-mono text-sm font-bold text-slate-900 focus:border-amber-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-500"
-                />
-              </div>
-
-              {/* Nama Lengkap */}
-              <div className="space-y-1.5">
-                <label className="font-bold text-slate-800">
-                  Nama Lengkap (Sesuai KTP)
-                </label>
-                <input
-                  type="text"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:border-amber-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-500"
-                />
-              </div>
-
-              {/* Email Field */}
-              <div className="space-y-1.5">
-                <label className="font-bold text-slate-800">
-                  Email Pengiriman Tiket
-                </label>
-                <input
-                  type="email"
-                  value={customerEmail}
-                  onChange={(e) => setCustomerEmail(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:border-amber-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-500"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* STEP 2: Pilih Kategori Tiket (Figma Screen 3) */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
-              <div className="flex items-center gap-2">
-                <span className="flex size-6 items-center justify-center rounded-full bg-amber-500 font-black text-slate-950 text-xs">
-                  2
-                </span>
-                <h3 className="text-sm font-black text-slate-900">
-                  Pilih Kategori Tiket
-                </h3>
-              </div>
-              <Badge className="bg-amber-100 text-amber-900 border-amber-300 font-bold text-[10px]">
-                HOLD 10 MENIT
-              </Badge>
-            </div>
-
-            <div className="flex items-center justify-between text-xs font-semibold text-slate-600">
-              <span>Pilih kategori tiket yang tersedia:</span>
-              <span className="font-bold text-slate-900">
-                Tiket dipilih: {totalQty} dari maks. {MAX_TICKETS_PER_ORDER}
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold text-slate-700">
+                Maksimal 3 Tiket
               </span>
             </div>
 
-            {/* List Category Cards */}
             <div className="space-y-3">
               {(categories || []).map((cat) => {
                 const qty = quantities[cat.id] || 0;
-                const isSoldOut = cat.isSoldOut || cat.available <= 0;
+                const isSoldOut = cat.available === 0;
 
                 return (
                   <div
                     key={cat.id}
                     className={`rounded-2xl border p-4 transition-all ${
                       qty > 0
-                        ? "border-amber-400 bg-amber-50/20 shadow-sm ring-1 ring-amber-400"
+                        ? "border-rose-600 bg-rose-50/20 shadow-sm"
                         : isSoldOut
-                        ? "border-slate-200 bg-slate-50 opacity-60"
+                        ? "border-slate-200 bg-slate-50/60 opacity-60"
                         : "border-slate-200 bg-white hover:border-slate-300"
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start justify-between gap-3">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <h4 className="font-extrabold text-slate-900 text-sm">
+                          <h3 className="font-black text-slate-900 text-sm">
                             {cat.name}
-                          </h4>
-                          {cat.tag && (
-                            <Badge
-                              className={`text-[9px] font-bold ${
-                                isSoldOut
-                                  ? "bg-red-100 text-red-700 border-red-300"
-                                  : cat.available < 50
-                                  ? "bg-amber-100 text-amber-800 border-amber-300"
-                                  : "bg-emerald-100 text-emerald-800 border-emerald-300"
-                              }`}
-                            >
-                              {cat.tag}
-                            </Badge>
+                          </h3>
+                          {cat.id === "vip" && (
+                            <span className="rounded bg-rose-100 px-2 py-0.5 text-[9px] font-black uppercase text-rose-700">
+                              Prioritas
+                            </span>
                           )}
                         </div>
-                        {cat.description && (
-                          <p className="text-[11px] text-muted-foreground">
-                            {cat.description}
+
+                        <p className="font-mono text-base font-black text-slate-950">
+                          {formatRupiah(cat.price)}
+                        </p>
+
+                        {cat.perks && (
+                          <p className="text-[11px] text-slate-500 font-medium">
+                            {cat.perks}
                           </p>
                         )}
-                        <p className="text-xs font-black text-slate-900 pt-1">
-                          HARGA PER TIKET{" "}
-                          <span className="text-amber-600 text-sm">
-                            {formatRupiah(cat.price)}
-                          </span>
-                        </p>
+
+                        <div className="pt-1">
+                          {isSoldOut ? (
+                            <span className="font-mono text-xs font-bold text-rose-600">
+                              Habis Terjual (Sold Out)
+                            </span>
+                          ) : (
+                            <span className="font-mono text-[11px] font-bold text-emerald-600">
+                              Tersedia: {cat.available} Tiket
+                            </span>
+                          )}
+                        </div>
                       </div>
 
-                      {/* Stepper / Sold Out Button */}
-                      {isSoldOut ? (
-                        <span className="rounded-lg bg-slate-200 px-3 py-1.5 text-xs font-bold text-slate-500">
-                          Habis Terjual
-                        </span>
-                      ) : (
-                        <div className="flex items-center gap-2">
+                      {/* Stepper Quantity */}
+                      {!isSoldOut ? (
+                        <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl">
                           <button
                             type="button"
-                            disabled={qty <= 0}
                             onClick={() => handleQtyChange(cat.id, -1)}
-                            className="flex size-8 items-center justify-center rounded-lg border border-slate-300 bg-white font-bold text-slate-700 shadow-sm hover:bg-slate-100 disabled:opacity-40"
+                            disabled={qty === 0}
+                            className="flex size-7 items-center justify-center rounded-lg bg-white text-slate-700 hover:bg-slate-200 disabled:opacity-30 disabled:pointer-events-none shadow-xs transition-colors"
                           >
                             <Minus className="size-3.5" />
                           </button>
-                          <span className="w-5 text-center font-mono text-sm font-black text-slate-900">
+                          <span className="w-5 text-center font-mono text-sm font-bold text-slate-900">
                             {qty}
                           </span>
                           <button
                             type="button"
-                            disabled={totalQty >= MAX_TICKETS_PER_ORDER || qty >= cat.available}
                             onClick={() => handleQtyChange(cat.id, 1)}
-                            className="flex size-8 items-center justify-center rounded-lg bg-amber-500 font-bold text-slate-950 shadow-sm hover:bg-amber-600 disabled:opacity-40"
+                            disabled={totalQty >= MAX_TICKETS_PER_ORDER || cat.available <= qty}
+                            className="flex size-7 items-center justify-center rounded-lg bg-white text-slate-700 hover:bg-slate-200 disabled:opacity-30 disabled:pointer-events-none shadow-xs transition-colors"
                           >
                             <Plus className="size-3.5" />
                           </button>
                         </div>
+                      ) : (
+                        <span className="rounded-lg bg-slate-200 px-3 py-1.5 text-xs font-bold text-slate-500">
+                          Habis
+                        </span>
                       )}
                     </div>
                   </div>
@@ -347,81 +263,187 @@ export function BookingPage() {
               })}
             </div>
           </div>
-        </div>
 
-        {/* RIGHT COLUMN: Rincian Pembayaran & Sticky CTA (5 Cols) */}
-        <div className="space-y-6 lg:col-span-5">
-          <div className="sticky top-20 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
-            <div className="flex items-center gap-2 border-b pb-3">
-              <span className="flex size-6 items-center justify-center rounded-full bg-amber-500 font-black text-slate-950 text-xs">
-                3
-              </span>
-              <h3 className="text-sm font-black text-slate-900">
-                Rincian Pembayaran
-              </h3>
+          {/* STEP 2: Validasi Identitas Pemesan */}
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+            <div className="border-b border-slate-100 pb-3">
+              <h2 className="text-base font-black text-slate-900">
+                2. Validasi Identitas Pemesan
+              </h2>
+              <p className="text-xs text-slate-500">
+                Pastikan data sesuai KTP/e-KTP asli untuk proses verifikasi tiket dan gate entry
+              </p>
             </div>
 
-            {/* Breakdown List */}
-            <div className="space-y-2.5 text-xs">
-              {activeItems.length === 0 ? (
-                <p className="py-4 text-center text-muted-foreground">
-                  Belum ada tiket yang dipilih.
-                </p>
-              ) : (
+            <div className="space-y-4 text-xs">
+              {/* NIK Input */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="nik" className="font-bold text-slate-800">
+                    Nomor Induk Kependudukan (NIK)
+                  </label>
+                  {isNikValid && (
+                    <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                      <Check className="size-3" /> Terkoneksi Dukcapil
+                    </span>
+                  )}
+                </div>
+                <input
+                  id="nik"
+                  type="text"
+                  maxLength={16}
+                  value={nik}
+                  onChange={(e) => setNik(e.target.value.replace(/\D/g, ""))}
+                  placeholder="3174052309980004"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 font-mono text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:border-rose-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-rose-500"
+                />
+              </div>
+
+              {/* Nama Lengkap Input */}
+              <div className="space-y-1.5">
+                <label htmlFor="customerName" className="font-bold text-slate-800">
+                  Nama Lengkap (Sesuai KTP)
+                </label>
+                <input
+                  id="customerName"
+                  type="text"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="Rian Adi Nugroho"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:border-rose-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-rose-500"
+                />
+              </div>
+
+              {/* Email & WhatsApp Inputs Grid */}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <label htmlFor="customerEmail" className="font-bold text-slate-800">
+                    Alamat Email (Untuk E-Ticket)
+                  </label>
+                  <input
+                    id="customerEmail"
+                    type="email"
+                    value={customerEmail}
+                    onChange={(e) => setCustomerEmail(e.target.value)}
+                    placeholder="rian.nugroho@mail.com"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:border-rose-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-rose-500"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label htmlFor="customerPhone" className="font-bold text-slate-800">
+                    Nomor WhatsApp Aktif
+                  </label>
+                  <input
+                    id="customerPhone"
+                    type="tel"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    placeholder="081298457890"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:border-rose-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-rose-500"
+                  />
+                </div>
+              </div>
+
+              {/* Terms Checkbox */}
+              <div className="pt-2">
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={agreed}
+                    onChange={(e) => setAgreed(e.target.checked)}
+                    className="mt-0.5 rounded border-slate-300 text-rose-600 focus:ring-rose-500"
+                  />
+                  <span className="text-[11px] text-slate-600 leading-relaxed">
+                    Saya menyetujui syarat & ketentuan pemesanan tiket, kebijakan pembatalan, serta menjamin keabsahan data NIK yang didaftarkan.
+                  </span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN: Sticky Payment Summary (5 Cols) */}
+        <div className="space-y-6 lg:col-span-5">
+          <div className="sticky top-20 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
+            <div className="border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">
+                Rincian Pembayaran
+              </h3>
+              <p className="text-xs font-bold text-slate-700 mt-1">
+                Deploy Jumat Sore Live 2025
+              </p>
+              <p className="text-[11px] text-slate-400">
+                Botanical Arena, Jakarta • 24 Okt 2025
+              </p>
+            </div>
+
+            {/* Selected Tickets Breakdown */}
+            <div className="space-y-2 text-xs">
+              {activeItems.length > 0 ? (
                 activeItems.map((item) => (
                   <div
                     key={item.category.id}
                     className="flex items-center justify-between text-slate-700"
                   >
                     <span>
-                      {item.category.name} ({item.qty} Tiket)
+                      {item.qty}x {item.category.name}
                     </span>
-                    <span className="font-semibold text-slate-900">
+                    <span className="font-mono font-bold">
                       {formatRupiah(item.subtotal)}
                     </span>
                   </div>
                 ))
+              ) : (
+                <p className="text-slate-400 italic">Belum ada tiket dipilih</p>
               )}
 
-              <div className="flex items-center justify-between text-slate-600">
-                <span>Pajak Hiburan & Daerah (10%)</span>
-                <span className="font-semibold text-slate-900">
-                  {formatRupiah(taxAmount)}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between text-slate-600">
-                <span>Biaya Layanan Gerbang Pembayaran</span>
-                <span className="font-semibold text-slate-900">
-                  {formatRupiah(platformFee)}
-                </span>
-              </div>
-
-              <div className="border-t border-dashed border-slate-200 pt-3">
-                <div className="flex items-center justify-between text-sm font-black">
-                  <span className="text-slate-900">Total Tagihan</span>
-                  <span className="text-base text-amber-600">
-                    {formatRupiah(grandTotal)}
+              {/* Tax & Fees */}
+              <div className="border-t border-slate-100 pt-2 space-y-1.5 text-slate-600 text-[11px]">
+                <div className="flex items-center justify-between">
+                  <span>Pajak Daerah (10%)</span>
+                  <span className="font-mono font-semibold">
+                    {formatRupiah(taxAmount)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Biaya Layanan</span>
+                  <span className="font-mono font-semibold">
+                    {formatRupiah(platformFee)}
                   </span>
                 </div>
               </div>
+
+              {/* Total Tagihan */}
+              <div className="border-t border-slate-100 pt-3 flex items-baseline justify-between">
+                <div>
+                  <span className="text-xs font-bold text-slate-900">
+                    Total Tagihan
+                  </span>
+                  <p className="text-[10px] text-slate-400">Termasuk pajak & biaya layanan</p>
+                </div>
+                <span className="text-xl font-black font-mono text-rose-600">
+                  {formatRupiah(grandTotal)}
+                </span>
+              </div>
             </div>
 
-            {/* Hold & Continue CTA Button */}
-            <div className="pt-2 space-y-2">
+            {/* CTA Button */}
+            <div className="space-y-2 pt-2">
               <Button
                 onClick={handleSubmit}
-                disabled={isSubmitting || totalQty === 0 || !isNikValid}
-                className="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black py-3 rounded-xl shadow-lg shadow-amber-500/20 text-xs sm:text-sm"
+                disabled={isSubmitting || totalQty === 0 || !isNikValid || !agreed}
+                className="w-full bg-rose-600 hover:bg-rose-700 text-white font-black py-3 rounded-2xl shadow-lg shadow-rose-600/30 group text-sm"
               >
-                <Lock className="mr-1.5 size-4" />
-                {isSubmitting
-                  ? "Mengamankan Slot Kuota..."
-                  : "Hold Stok & Lanjut Pembayaran (10 Mnt)"}
+                {isSubmitting ? "Memproses Reservasi..." : "Lanjut ke Pembayaran"}
+                <ArrowRight className="ml-2 size-4 transition-transform group-hover:translate-x-1" />
               </Button>
-              <p className="text-center text-[10px] text-muted-foreground">
-                Stok akan di-HOLD selama 10 menit setelah tombol ditekan.
-              </p>
+            </div>
+
+            {/* Security Guarantee */}
+            <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400 border-t border-slate-100 pt-3">
+              <ShieldCheck className="size-4 text-emerald-600" />
+              <span>Enkripsi 256-Bit SSL • Transaksi Dijamin Aman</span>
             </div>
           </div>
         </div>

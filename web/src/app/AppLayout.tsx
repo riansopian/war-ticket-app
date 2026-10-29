@@ -1,9 +1,9 @@
 import {
-  Flame,
+  Bell,
+  Compass,
   Hourglass,
-  MapPin,
-  ShieldCheck,
-  ShoppingBag,
+  Layers,
+  Search,
   Ticket,
   User,
 } from "lucide-react";
@@ -16,86 +16,100 @@ export function AppLayout() {
   const location = useLocation();
   const path = location.pathname;
 
-  // Active state checker for bottom nav
-  const isHome = path === "/" || path.startsWith("/events");
+  // Active state checker
+  const isHome = path === "/" || path.startsWith("/events") && !path.includes("/queue") && !path.includes("/booking");
   const isQueue = path.includes("/queue");
   const isOrder = path.includes("/booking") || path.includes("/pay");
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 antialiased selection:bg-amber-100 selection:text-amber-900 pb-20 md:pb-12">
+    <div className="min-h-screen bg-slate-50 text-slate-900 antialiased selection:bg-rose-100 selection:text-rose-900 pb-20 md:pb-12">
       {/* ================= DESKTOP TOP NAVBAR ================= */}
-      <header className="sticky top-0 z-40 hidden border-b border-slate-200/80 bg-white/90 backdrop-blur-md md:block">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
-          {/* Logo & City */}
+      <header className="sticky top-0 z-40 hidden border-b border-slate-200/90 bg-white/95 backdrop-blur-md md:block shadow-sm">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
+          {/* Brand Logo & Search */}
           <div className="flex items-center gap-6">
-            <Link to={ROUTES.home} className="flex items-center gap-2.5">
-              <div className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 font-extrabold text-white shadow-md shadow-amber-500/20">
+            <Link to={ROUTES.home} className="flex items-center gap-2.5 group">
+              <div className="flex size-9 items-center justify-center rounded-xl bg-slate-950 font-black text-rose-500 shadow-md group-hover:scale-105 transition-transform">
                 <Ticket className="size-5" />
               </div>
-              <div>
+              <div className="leading-tight">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-black tracking-tight text-slate-900">
-                    DEPLOY JUMAT SORE
+                  <span className="font-black text-lg tracking-tight text-slate-950">
+                    booket
                   </span>
-                  <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
-                    LIVE
-                  </span>
+                  <span className="size-1.5 rounded-full bg-rose-600 animate-pulse" />
                 </div>
-                <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                  <MapPin className="size-3 text-slate-400" />
-                  <span>Jakarta, ID (GBK Complex)</span>
-                </div>
+                <p className="text-[9px] font-extrabold tracking-widest text-slate-400 uppercase">
+                  CONCERT & QUEUE
+                </p>
               </div>
             </Link>
 
-            {/* Navigation Links */}
-            <nav className="flex items-center gap-1 pl-4 text-xs font-semibold">
-              <Link
-                to={ROUTES.home}
-                className={`rounded-lg px-3 py-1.5 transition-colors ${
-                  isHome && !isQueue
-                    ? "bg-slate-100 text-slate-900 font-bold"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                War Tiket
-              </Link>
-              <Link
-                to="/events/deploy-jumat-sore/queue"
-                className={`rounded-lg px-3 py-1.5 transition-colors ${
-                  isQueue
-                    ? "bg-slate-100 text-slate-900 font-bold"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                Ruang Tunggu
-              </Link>
-              <span className="text-slate-300">|</span>
-              <span className="flex items-center gap-1 text-[11px] font-medium text-emerald-600">
-                <span className="inline-block size-2 animate-pulse rounded-full bg-emerald-500" />
-                SISTEM SIAP • 99.98%
-              </span>
-            </nav>
+            {/* Global Search Bar */}
+            <div className="relative w-64 lg:w-80">
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Cari konser, artis, atau venue..."
+                className="w-full rounded-full border border-slate-200 bg-slate-50/80 py-1.5 pl-9 pr-4 text-xs font-medium text-slate-800 placeholder:text-slate-400 transition-all focus:border-rose-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-rose-500"
+              />
+            </div>
           </div>
 
-          {/* Right side: Security & Profile */}
-          <div className="flex items-center gap-4 text-xs">
-            <div className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-mono text-[11px] text-slate-600">
-              <ShieldCheck className="size-3.5 text-emerald-600" />
-              <span>SECURE FLASH 256-BIT</span>
-            </div>
+          {/* Navigation Links */}
+          <nav className="flex items-center gap-1 text-xs font-bold">
+            <Link
+              to={ROUTES.home}
+              className={`rounded-full px-4 py-1.5 transition-all ${
+                isHome
+                  ? "bg-rose-600 text-white shadow-sm shadow-rose-600/30"
+                  : "text-slate-600 hover:text-slate-950 hover:bg-slate-100"
+              }`}
+            >
+              Jelajahi Konser
+            </Link>
+            <Link
+              to="/events/deploy-jumat-sore/queue"
+              className={`rounded-full px-4 py-1.5 transition-all ${
+                isQueue
+                  ? "bg-rose-600 text-white shadow-sm shadow-rose-600/30"
+                  : "text-slate-600 hover:text-slate-950 hover:bg-slate-100"
+              }`}
+            >
+              Antrean Live
+            </Link>
+            <Link
+              to="/events/deploy-jumat-sore/queue"
+              className="rounded-full px-4 py-1.5 text-slate-600 hover:text-slate-950 hover:bg-slate-100 transition-all"
+            >
+              Tiket Saya
+            </Link>
+            <a
+              href="#bantuan"
+              className="rounded-full px-4 py-1.5 text-slate-600 hover:text-slate-950 hover:bg-slate-100 transition-all"
+            >
+              Bantuan
+            </a>
+          </nav>
 
-            <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
-              <div className="flex size-8 items-center justify-center rounded-full bg-slate-100 text-slate-700 font-bold text-xs">
-                BS
+          {/* Right side: Notification & User Profile */}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              className="relative flex size-8 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100 hover:text-slate-950 transition-colors"
+              title="Notifikasi"
+            >
+              <Bell className="size-4" />
+              <span className="absolute top-1 right-1 size-2 rounded-full bg-rose-600 ring-2 ring-white" />
+            </button>
+
+            <div className="flex items-center gap-2.5 rounded-full border border-slate-200/80 bg-white py-1 pl-1 pr-3.5 shadow-sm">
+              <div className="flex size-7 items-center justify-center rounded-full bg-slate-900 text-rose-400 font-black text-xs">
+                KM
               </div>
-              <div className="text-left">
-                <p className="font-bold text-slate-900 leading-tight">
-                  Budi Santoso
-                </p>
-                <p className="text-[10px] text-muted-foreground font-mono">
-                  31710528****0002
-                </p>
+              <div className="text-left leading-none">
+                <p className="font-bold text-xs text-slate-900">Kolektor Musik</p>
+                <p className="text-[10px] font-semibold text-rose-600">VIP Member</p>
               </div>
             </div>
           </div>
@@ -103,76 +117,78 @@ export function AppLayout() {
       </header>
 
       {/* ================= MOBILE TOP HEADER ================= */}
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200/80 bg-white/95 px-4 py-3 backdrop-blur md:hidden">
+      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200/90 bg-white/95 px-4 py-2.5 backdrop-blur-md md:hidden shadow-sm">
         <Link to={ROUTES.home} className="flex items-center gap-2">
-          <div className="flex size-7 items-center justify-center rounded-lg bg-amber-500 text-white font-bold">
+          <div className="flex size-8 items-center justify-center rounded-lg bg-slate-950 text-rose-500 font-black">
             <Ticket className="size-4" />
           </div>
           <div>
             <div className="flex items-center gap-1">
-              <span className="text-xs font-black tracking-tight text-slate-900">
-                DEPLOY JUMAT SORE
+              <span className="text-sm font-black tracking-tight text-slate-950">
+                booket
               </span>
-              <span className="rounded-full bg-emerald-100 px-1 py-0.2 text-[9px] font-bold text-emerald-700">
-                LIVE
-              </span>
+              <span className="size-1.5 rounded-full bg-rose-600 animate-pulse" />
             </div>
-            <div className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
-              <MapPin className="size-2.5" />
-              <span>Jakarta, ID (GBK)</span>
-              <span className="text-emerald-600 font-bold">• SIAP 99.98%</span>
-            </div>
+            <p className="text-[8px] font-extrabold tracking-widest text-slate-400 uppercase">
+              CONCERT & QUEUE
+            </p>
           </div>
         </Link>
 
-        <div className="flex items-center gap-1.5">
-          <div className="flex size-7 items-center justify-center rounded-full bg-slate-100 text-slate-700 text-xs font-bold">
-            BS
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="flex size-8 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100"
+          >
+            <Bell className="size-4" />
+          </button>
+          <div className="flex size-7 items-center justify-center rounded-full bg-slate-900 text-rose-400 font-bold text-xs">
+            KM
           </div>
         </div>
       </header>
 
       {/* ================= MAIN RESPONSIVE CONTENT ================= */}
-      <main className="mx-auto w-full max-w-md px-3.5 py-4 sm:max-w-lg md:max-w-4xl lg:max-w-6xl md:px-6 md:py-8">
+      <main className="mx-auto w-full max-w-md px-3.5 py-4 sm:max-w-xl md:max-w-4xl lg:max-w-7xl md:px-6 md:py-6">
         <Outlet />
       </main>
 
       {/* ================= MOBILE BOTTOM NAVIGATION ================= */}
-      <nav className="fixed bottom-0 left-0 right-0 z-30 flex items-center justify-around border-t border-slate-200 bg-white/95 py-2 backdrop-blur md:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 z-30 flex items-center justify-around border-t border-slate-200 bg-white/95 py-2 backdrop-blur-md md:hidden">
         <Link
           to={ROUTES.home}
-          className={`flex flex-col items-center gap-1 text-[10px] font-semibold ${
-            isHome && !isQueue ? "text-amber-600" : "text-slate-400"
+          className={`flex flex-col items-center gap-1 text-[10px] font-bold ${
+            isHome ? "text-rose-600" : "text-slate-400"
           }`}
         >
-          <Flame className="size-4" />
-          <span>War Tiket</span>
+          <Compass className="size-4" />
+          <span>Jelajahi</span>
         </Link>
         <Link
           to="/events/deploy-jumat-sore/queue"
-          className={`flex flex-col items-center gap-1 text-[10px] font-semibold ${
-            isQueue ? "text-amber-600" : "text-slate-400"
+          className={`flex flex-col items-center gap-1 text-[10px] font-bold ${
+            isQueue ? "text-rose-600" : "text-slate-400"
           }`}
         >
           <Hourglass className="size-4" />
           <span>Antrean</span>
         </Link>
         <Link
-          to={ROUTES.home}
-          className={`flex flex-col items-center gap-1 text-[10px] font-semibold ${
-            isOrder ? "text-amber-600" : "text-slate-400"
+          to="/events/deploy-jumat-sore/queue"
+          className={`flex flex-col items-center gap-1 text-[10px] font-bold ${
+            isOrder ? "text-rose-600" : "text-slate-400"
           }`}
         >
-          <ShoppingBag className="size-4" />
-          <span>Pesanan</span>
+          <Layers className="size-4" />
+          <span>Tiket Saya</span>
         </Link>
         <button
           type="button"
           onClick={() => {}}
-          className="flex flex-col items-center gap-1 text-[10px] font-semibold text-slate-400"
+          className="flex flex-col items-center gap-1 text-[10px] font-bold text-slate-400"
         >
           <User className="size-4" />
-          <span>Profil</span>
+          <span>Akun</span>
         </button>
       </nav>
 

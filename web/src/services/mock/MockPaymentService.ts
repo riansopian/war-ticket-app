@@ -8,18 +8,21 @@ import { withDb } from "./withDb";
 const METHODS: PaymentMethod[] = [
   {
     id: "VIRTUAL_ACCOUNT",
+    group: "VIRTUAL_ACCOUNT",
     label: "Virtual Account (BCA VA)",
     description: "Konfirmasi instan otomatis tanpa bukti transfer",
     badge: "Tersambung API",
   },
   {
     id: "E_WALLET",
+    group: "E_WALLET",
     label: "Instant QRIS",
     description: "Gopay, OVO, Dana, ShopeePay, LinkAja",
     badge: "AUTO",
   },
   {
     id: "BANK_TRANSFER",
+    group: "CARD",
     label: "Kartu Kredit / Debit Online",
     description: "Visa, Mastercard, JCB (3D Secure OTP)",
   },

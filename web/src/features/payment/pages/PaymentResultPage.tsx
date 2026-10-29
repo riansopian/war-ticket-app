@@ -2,44 +2,39 @@ import {
   AlertCircle,
   ArrowLeft,
   Calendar,
-  Check,
   CheckCircle2,
   Copy,
   Download,
-  Info,
   Mail,
   MapPin,
   QrCode,
   RotateCcw,
-  ShieldCheck,
-  Smartphone,
+  Share2,
   Ticket,
+  Wallet,
 } from "lucide-react";
 import * as React from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { ROUTES } from "@/app/routes";
 import { useServices } from "@/app/ServicesContext";
 import { ErrorState, LoadingState } from "@/components/shared/AsyncStates";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { Booking, Event } from "@/domain/types";
+import type { Booking } from "@/domain/types";
 import { formatRupiah } from "@/lib/format";
 
 export function PaymentResultPage() {
   const { bookingId = "" } = useParams<{ bookingId: string }>();
   const navigate = useNavigate();
-  const { booking: bookingService, events: eventService } = useServices();
+  const { booking: bookingService } = useServices();
 
   const [booking, setBooking] = React.useState<Booking | null>(null);
-  const [event, setEvent] = React.useState<Event | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [copiedRef, setCopiedRef] = React.useState(false);
   const [downloading, setDownloading] = React.useState(false);
-  const [emailSent, setEmailSent] = React.useState(false);
 
-  // Live timestamp clock untuk Anti-Screenshot Pass effect (Figma Screen 5)
+  // Live timestamp clock untuk Anti-Screenshot Dynamic Pass effect (Figma Screen 5)
   const [currentTime, setCurrentTime] = React.useState(() =>
     new Date().toLocaleTimeString("id-ID", {
       hour: "2-digit",
@@ -68,8 +63,6 @@ export function PaymentResultPage() {
     try {
       const b = await bookingService.get(bookingId);
       setBooking(b);
-      const e = await eventService.get(b.eventId);
-      setEvent(e);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Gagal memuat status pesanan.",
@@ -77,15 +70,15 @@ export function PaymentResultPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [bookingId, bookingService, eventService]);
+  }, [bookingId, bookingService]);
 
   React.useEffect(() => {
     loadData();
   }, [loadData]);
 
   const handleCopyRef = () => {
-    const refCode = `#BKS-${booking?.code || "DJS-2025-99214"}`;
-    navigator.clipboard.writeText(refCode);
+    const refCode = booking?.code || "TRX-882941-BKT";
+    navigator.clipboard.writeText(`#${refCode}`);
     setCopiedRef(true);
     setTimeout(() => setCopiedRef(false), 2000);
   };
@@ -94,389 +87,316 @@ export function PaymentResultPage() {
     setDownloading(true);
     setTimeout(() => {
       setDownloading(false);
-      alert("E-Tiket resmi dalam format PDF berhasil diunduh ke perangkat Anda.");
-    }, 1500);
-  };
-
-  const handleResendEmail = () => {
-    setEmailSent(true);
-    setTimeout(() => setEmailSent(false), 3000);
+      alert("E-Tiket resmi Booket (PDF) berhasil diunduh ke perangkat Anda.");
+    }, 1200);
   };
 
   if (isLoading) {
-    return <LoadingState label="Memeriksa status e-tiket resmi Anda..." />;
+    return <LoadingState label="Memverifikasi tiket konser digital Anda..." />;
   }
 
   if (error || !booking) {
     return (
-      <ErrorState
-        message={error || "Booking tidak ditemukan."}
-        onRetry={loadData}
-      />
+      <div className="space-y-4">
+        <ErrorState
+          message={error || "Data reservasi tidak ditemukan."}
+          onRetry={loadData}
+        />
+      </div>
     );
   }
 
-  const isSuccess = booking.status === "PAID";
-  const userNik = booking.nik || "3171052809960002";
-  const maskedNik =
-    userNik.length === 16
-      ? `${userNik.slice(0, 8)}****${userNik.slice(12)}`
-      : userNik;
-  const totalTickets = booking.items.reduce((acc, i) => acc + i.qty, 0);
-  const bookingRef = `#BKS-${booking.code || "DJS-2025-99214"}`;
-  const customerEmail = booking.customerEmail || "budi.santoso@deployjumat.id";
-  const ticketCodes = booking.ticketCodes || [
-    "DJS-CAT1-584210",
-    "DJS-CAT1-584211",
-  ];
+  // ================= SCENARIO 1: EXPIRED / CANCELLED =================
+  if (booking.status === "EXPIRED") {
+    return (
+      <div className="mx-auto max-w-xl space-y-6 text-center py-8">
+        <div className="mx-auto flex size-16 items-center justify-center rounded-3xl bg-rose-100 text-rose-600">
+          <AlertCircle className="size-8" />
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-2xl font-black text-slate-900">
+            Sesi Reservasi Berakhir
+          </h1>
+          <p className="text-xs text-slate-500 leading-relaxed max-w-md mx-auto">
+            Batas waktu pembayaran 10 menit telah berakhir. Tiket yang sebelumnya ditahan telah dilepaskan kembali ke kuota antrean umum.
+          </p>
+        </div>
+
+        <div className="pt-2">
+          <Button
+            onClick={() => navigate(ROUTES.waitingRoom(booking.eventId))}
+            className="bg-rose-600 hover:bg-rose-700 text-white font-bold px-6 py-2.5 rounded-xl shadow-md text-xs"
+          >
+            <RotateCcw className="mr-1.5 size-4" />
+            Masuk Kembali ke Antrean
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // ================= SCENARIO 2: SUCCESS / PAID (Figma Screen 5 Right) =================
+  const trxCode = booking.code || "TRX-882941-BKT";
+  const ticketCode = booking.ticketCodes?.[0] || "BKT-VIP-2025-99418";
+  const customerName = booking.customerName || "Rian Adi Nugroho";
+  const customerNik = booking.nik || "3174052309980004";
+  const customerEmail = booking.customerEmail || "rian.nugroho@mail.com";
+  const customerPhone = booking.customerPhone || "081298457890";
+  const categoryName = booking.items[0]?.categoryName || "VIP Sunset Lounge";
+  const gateInfo = booking.gateInfo || "Gate 4B Level 1";
+  const rowSeat = booking.rowSeat || "Free Seating Lounge (Row A)";
 
   return (
     <div className="space-y-6">
-      {/* ================= TOP SECURITY HEADER ================= */}
-      <div className="flex items-center justify-between rounded-xl bg-white px-4 py-2.5 shadow-sm border border-slate-200">
-        <div className="flex items-center gap-2">
-          <ShieldCheck className="size-4 text-emerald-600" />
-          <span className="text-xs font-black tracking-wide text-slate-900 uppercase">
-            SECURE FLASH • E Ticket View
-          </span>
+      {/* ================= GREEN SUCCESS BANNER (Figma Screen 5 Right) ================= */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl bg-emerald-600 px-5 py-4 text-white shadow-md">
+        <div className="flex items-center gap-3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/20">
+            <CheckCircle2 className="size-6 text-white" />
+          </div>
+          <div>
+            <h2 className="text-sm font-black uppercase tracking-wider">
+              TRANSAKSI BERHASIL & TERVERIFIKASI
+            </h2>
+            <p className="text-xs text-emerald-100">
+              Pembayaran Berhasil! Reservasi Anda telah dikonfirmasi dan e-ticket telah diterbitkan.
+            </p>
+          </div>
         </div>
-        <Badge className="bg-slate-100 text-slate-700 font-mono text-[10px] font-bold">
-          256-Bit SSL
-        </Badge>
+
+        <button
+          onClick={handleCopyRef}
+          className="flex items-center gap-1.5 font-mono text-xs font-black bg-emerald-700/80 px-3 py-1.5 rounded-xl self-start sm:self-auto border border-emerald-500/40 hover:bg-emerald-700 transition-colors"
+          title="Salin ID Transaksi"
+        >
+          <span>ID TRANSAKSI: #{trxCode}</span>
+          <Copy className="size-3 text-emerald-200" />
+          {copiedRef && <span className="text-white text-[10px]">Tersalin!</span>}
+        </button>
       </div>
 
-      {isSuccess ? (
-        /* ================= SUKSES (Figma Screen 5) ================= */
-        <div className="space-y-6">
-          {/* Header Banner: Lunas & Verified Order */}
-          <div className="rounded-3xl bg-white p-6 text-center shadow-sm border border-slate-200 space-y-2">
-            <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200">
-              <CheckCircle2 className="size-8" />
-            </div>
-            <div className="space-y-1">
-              <span className="text-[11px] font-extrabold uppercase tracking-widest text-emerald-700">
-                • LUNAS • VERIFIED ORDER
-              </span>
-              <h2 className="text-2xl font-black text-slate-950">
-                E-Tiket Diterbitkan!
+      {/* ================= MAIN RESPONSIVE TWO-COLUMN LAYOUT ================= */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        {/* LEFT COLUMN: Digital E-Ticket Pass (7 Cols) */}
+        <div className="space-y-4 lg:col-span-7">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-black text-slate-900">
+                Pass Konser Digital Resmi
               </h2>
-              <p className="text-xs text-muted-foreground">
-                Bukti transaksi & e-tiket resmi telah dikirim ke{" "}
-                <strong className="text-slate-800">{customerEmail}</strong>
-              </p>
+              <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                LIVE BARCODE ACTIVE
+              </span>
             </div>
-
-            {/* Booking Ref Pill */}
-            <div className="pt-2">
-              <div className="inline-flex items-center gap-2 rounded-xl bg-slate-50 px-3.5 py-1.5 border border-slate-200 text-xs font-mono">
-                <span className="text-muted-foreground">Booking Ref:</span>
-                <span className="font-bold text-slate-900">{bookingRef}</span>
-                <button
-                  type="button"
-                  onClick={handleCopyRef}
-                  className="text-slate-500 hover:text-slate-900"
-                >
-                  {copiedRef ? (
-                    <Check className="size-3.5 text-emerald-600" />
-                  ) : (
-                    <Copy className="size-3.5" />
-                  )}
-                </button>
-              </div>
-            </div>
+            <p className="text-xs text-slate-500">
+              Tunjukkan e-ticket ini di pintu masuk Botanical Arena pada hari acara
+            </p>
           </div>
 
-          {/* ================= CONCERT PASS CARD (Figma Screen 5) ================= */}
-          <div className="mx-auto max-w-xl overflow-hidden rounded-3xl bg-slate-950 text-white shadow-2xl border border-slate-800 relative">
-            {/* Ambient Background Lights */}
-            <div className="pointer-events-none absolute -right-10 -top-10 size-48 rounded-full bg-amber-500/15 blur-3xl" />
-            <div className="pointer-events-none absolute -left-10 bottom-0 size-48 rounded-full bg-blue-600/15 blur-3xl" />
+          {/* ================= VIP PASS CARD (Figma Screen 5 Right) ================= */}
+          <div className="relative overflow-hidden rounded-3xl bg-[#18191e] text-white shadow-2xl border border-slate-800">
+            {/* Notch effect corners */}
+            <div className="absolute -left-3 top-1/2 -mt-3 size-6 rounded-full bg-slate-50 border-r border-slate-200 z-10 hidden sm:block" />
+            <div className="absolute -right-3 top-1/2 -mt-3 size-6 rounded-full bg-slate-50 border-l border-slate-200 z-10 hidden sm:block" />
 
-            <div className="relative p-6 space-y-5">
+            {/* Ambient Red Glow */}
+            <div className="pointer-events-none absolute -right-16 -top-16 size-64 rounded-full bg-rose-600/15 blur-3xl" />
+
+            <div className="p-6 sm:p-7 space-y-5">
               {/* Pass Header */}
               <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex size-8 items-center justify-center rounded-lg bg-amber-500 text-slate-950 font-bold">
-                    <Ticket className="size-5" />
+                <div className="flex items-center gap-2">
+                  <div className="flex size-7 items-center justify-center rounded-lg bg-rose-600 text-white font-black text-xs">
+                    <Ticket className="size-4" />
                   </div>
                   <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-400">
-                      CONCERT PASS
+                    <span className="text-xs font-black tracking-wider uppercase text-white">
+                      Booket PASS
                     </span>
-                    <h3 className="text-base font-black text-white">
-                      {booking.eventName}
-                    </h3>
+                    <span className="text-[10px] font-bold text-rose-500 ml-1.5">
+                      • VIP ACCESS
+                    </span>
                   </div>
                 </div>
-                <Badge className="bg-amber-400 text-slate-950 font-black text-xs">
-                  {totalTickets} TIKET
-                </Badge>
+
+                <span className="flex items-center gap-1 rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-[10px] font-bold text-emerald-400 border border-emerald-500/30">
+                  <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  ACTIVE & VALID
+                </span>
               </div>
 
-              {/* Event Details Grid */}
-              <div className="grid grid-cols-2 gap-4 text-xs">
-                <div>
-                  <span className="text-[10px] uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                    <Calendar className="size-3" /> Waktu Pertunjukan
+              {/* Event Info */}
+              <div className="space-y-1">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-rose-500">
+                  {booking.tourName || "Tur Musik Botani • Presale Fase 2"}
+                </p>
+                <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight uppercase">
+                  {booking.eventName}
+                </h3>
+                <div className="flex flex-wrap items-center gap-y-1 gap-x-3 text-xs text-slate-400 pt-1">
+                  <span className="flex items-center gap-1">
+                    <Calendar className="size-3.5 text-rose-500" />
+                    Jumat, 24 Okt 2025 • 18:30 WIB
                   </span>
-                  <p className="font-bold text-slate-100 pt-0.5">
-                    Min, 14 Des 2025
-                  </p>
-                  <p className="text-[11px] text-slate-400">
-                    18:30 WIB (Pintu Buka 15:00)
-                  </p>
-                </div>
-
-                <div>
-                  <span className="text-[10px] uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                    <MapPin className="size-3" /> Lokasi & Gate
+                  <span className="flex items-center gap-1">
+                    <MapPin className="size-3.5 text-rose-500" />
+                    Botanical Arena, Jakarta
                   </span>
-                  <p className="font-bold text-slate-100 pt-0.5">
-                    Stadion Madya GBK
-                  </p>
-                  <p className="text-[11px] text-amber-400 font-semibold">
-                    Gate B (Pintu Selatan)
-                  </p>
                 </div>
               </div>
 
-              {/* Category & Holder Details */}
-              <div className="grid grid-cols-2 gap-4 pt-1 border-t border-slate-800 text-xs">
-                <div>
-                  <span className="text-[10px] uppercase tracking-wider text-slate-400">
-                    Kategori Tiket
-                  </span>
-                  {booking.items.map((i) => (
-                    <div key={i.categoryId} className="pt-0.5">
-                      <p className="font-bold text-amber-400">{i.categoryName}</p>
-                      <p className="text-[10px] text-slate-400">Free Standing Area</p>
-                    </div>
-                  ))}
-                </div>
+              {/* Dashed Separator */}
+              <div className="border-t border-dashed border-slate-800 my-2" />
 
+              {/* Attendee Details Matrix */}
+              <div className="grid grid-cols-2 gap-3 text-xs">
                 <div>
                   <span className="text-[10px] uppercase tracking-wider text-slate-400">
                     Pemegang Tiket
                   </span>
-                  <p className="font-bold text-slate-100 pt-0.5">
-                    {booking.customerName || "Budi Santoso"}
-                  </p>
-                  <p className="font-mono text-[11px] text-slate-400">
-                    NIK: {maskedNik}
-                  </p>
+                  <p className="font-bold text-white mt-0.5">{customerName}</p>
                 </div>
-              </div>
-
-              {/* Dynamic Anti-Screenshot Live Clock Banner (Figma Screen 5) */}
-              <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/40 px-3.5 py-2 text-center">
-                <div className="flex items-center justify-center gap-1.5 text-xs font-mono font-bold text-emerald-400">
-                  <span className="size-2 rounded-full bg-emerald-400 animate-ping" />
-                  <span>ACTIVE ANTI-SCREENSHOT PASS</span>
-                  <span>•</span>
-                  <span>{currentTime} WIB</span>
-                </div>
-              </div>
-
-              {/* Barcode & QR Code Center Box */}
-              <div className="rounded-2xl bg-white p-5 text-center space-y-2 text-slate-900 shadow-inner">
-                <div className="mx-auto flex size-44 items-center justify-center rounded-xl bg-slate-50 p-2">
-                  <QrCode className="size-40 text-slate-950" />
-                </div>
-
-                <div className="space-y-1 pt-1">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                    TICKET CODES
+                <div>
+                  <span className="text-[10px] uppercase tracking-wider text-slate-400">
+                    NIK Terverifikasi
                   </span>
-                  <div className="flex items-center justify-center gap-2 font-mono text-xs font-extrabold text-slate-800">
-                    {ticketCodes.map((code) => (
-                      <span
-                        key={code}
-                        className="rounded bg-slate-100 px-2 py-0.5 border border-slate-200"
-                      >
-                        {code}
-                      </span>
-                    ))}
+                  <p className="font-mono font-bold text-slate-200 mt-0.5">{customerNik}</p>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase tracking-wider text-slate-400">
+                    Kategori Tiket
+                  </span>
+                  <p className="font-bold text-rose-400 mt-0.5">{categoryName}</p>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase tracking-wider text-slate-400">
+                    Pintu Masuk
+                  </span>
+                  <p className="font-bold text-white mt-0.5">{gateInfo}</p>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-[10px] uppercase tracking-wider text-slate-400">
+                    Zona Duduk / Lokasi
+                  </span>
+                  <p className="font-bold text-slate-200 mt-0.5">{rowSeat}</p>
+                </div>
+              </div>
+
+              {/* Barcode & Dynamic Refresh Area (Figma Screen 5 Right) */}
+              <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4 text-center space-y-3">
+                <div className="mx-auto flex size-36 items-center justify-center rounded-xl bg-white p-2">
+                  <QrCode className="size-32 text-slate-900" />
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex items-center justify-center gap-1.5 text-[11px] font-mono font-bold text-rose-400">
+                    <span>KODE TIKET: {ticketCode}</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-400">
+                    <span className="size-1.5 rounded-full bg-emerald-400 animate-ping" />
+                    <span>Dynamic Barcode • Refresh otomatis tiap 30s • </span>
+                    <span className="font-mono text-slate-300 font-bold">{currentTime} WIB</span>
                   </div>
                 </div>
-
-                <p className="text-[10px] text-slate-500 pt-1">
-                  Tingkatkan kecerahan layar hp Anda saat mendekati pintu scanner.
-                </p>
-              </div>
-
-              {/* Wallet Buttons (Figma Screen 5) */}
-              <div className="grid grid-cols-2 gap-3 pt-1">
-                <button
-                  type="button"
-                  onClick={() => alert("Menambahkan e-tiket ke Apple Wallet...")}
-                  className="flex items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-900 py-2.5 text-xs font-bold text-white hover:bg-slate-800 transition-colors"
-                >
-                  <Smartphone className="size-4" />
-                  <span>Apple Wallet</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => alert("Menyimpan e-tiket ke Google Wallet...")}
-                  className="flex items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-900 py-2.5 text-xs font-bold text-white hover:bg-slate-800 transition-colors"
-                >
-                  <Smartphone className="size-4 text-emerald-400" />
-                  <span>Google Wallet</span>
-                </button>
               </div>
             </div>
-          </div>
-
-          {/* ================= KETENTUAN MASUK KONSER (Figma Screen 5) ================= */}
-          <div className="mx-auto max-w-xl rounded-3xl border border-slate-200 bg-white p-5 shadow-sm space-y-4 text-xs">
-            <div className="flex items-center justify-between border-b pb-3">
-              <div className="flex items-center gap-2">
-                <Info className="size-4 text-slate-700" />
-                <h4 className="text-sm font-black text-slate-900">
-                  Ketentuan Masuk Konser
-                </h4>
-              </div>
-              <Badge className="bg-red-100 text-red-800 border-red-200 font-bold text-[10px]">
-                WAJIB BACA
-              </Badge>
-            </div>
-
-            <div className="space-y-3 text-slate-700">
-              <div className="flex items-start gap-3">
-                <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-700 font-bold text-xs">
-                  1
-                </div>
-                <div className="space-y-0.5">
-                  <p className="font-bold text-slate-900">
-                    Validasi Identitas Resmi (KTP/Passport)
-                  </p>
-                  <p className="text-[11px] text-slate-500 leading-relaxed">
-                    Nama pada tiket harus cocok dengan kartu identitas asli Budi Santoso saat scan di pintu turnstile.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-700 font-bold text-xs">
-                  2
-                </div>
-                <div className="space-y-0.5">
-                  <p className="font-bold text-slate-900">
-                    Penukaran Wristband Gelang
-                  </p>
-                  <p className="text-[11px] text-slate-500 leading-relaxed">
-                    12 - 14 Desember 2025 di Plaza Barat Stadion Utama GBK Senayan (Pukul 10:00 - 19:00 WIB).
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-700 font-bold text-xs">
-                  !
-                </div>
-                <div className="space-y-0.5">
-                  <p className="font-bold text-slate-900">Barang yang Dilarang</p>
-                  <p className="text-[11px] text-slate-500 leading-relaxed">
-                    Dilarang membawa kamera DSLR/mirrorless, tongsis/monopod, korek api, botol kaca, payung runcing, dan senjata tajam.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ================= ACTION BUTTONS (Figma Screen 5) ================= */}
-          <div className="mx-auto max-w-xl space-y-3">
-            <Button
-              onClick={handleDownloadPdf}
-              disabled={downloading}
-              className="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black py-3 rounded-xl shadow-lg shadow-amber-500/20 text-sm"
-            >
-              <Download className="mr-2 size-4" />
-              {downloading ? "Mengunduh PDF..." : "Unduh E-Tiket PDF (Resmi)"}
-            </Button>
-
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                variant="outline"
-                onClick={handleResendEmail}
-                className="font-bold text-xs"
-              >
-                <Mail className="mr-1.5 size-3.5" />
-                {emailSent ? "Email Terkirim!" : "Kirim Ulang Email"}
-              </Button>
-
-              <Button
-                variant="outline"
-                onClick={() => navigate(ROUTES.home)}
-                className="font-bold text-xs"
-              >
-                <ArrowLeft className="mr-1.5 size-3.5" />
-                Ke Beranda
-              </Button>
-            </div>
-
-            <p className="text-center text-[11px] text-slate-400 pt-1">
-              Butuh bantuan terkait tiket Anda? Hubungi{" "}
-              <a href="#" className="font-bold text-slate-600 underline">
-                TiketCare DJS
-              </a>
-            </p>
           </div>
         </div>
-      ) : (
-        /* ================= EXPIRED (Figma Kasus B) ================= */
-        <div className="mx-auto max-w-xl space-y-4">
-          <div className="rounded-3xl border border-red-200 bg-red-50 p-6 text-center space-y-3">
-            <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-red-100 text-red-600">
-              <AlertCircle className="size-6" />
-            </div>
-            <h2 className="text-xl font-black text-red-950">
-              Waktu Pembayaran Habis!
-            </h2>
-            <p className="text-xs text-red-800 leading-relaxed">
-              Batas waktu pembayaran 10 menit telah terlampaui. Alokasi {totalTickets} tiket Anda telah dilepas kembali ke kuota sistem untuk peserta antrian berikutnya.
-            </p>
-          </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-3 text-xs">
-            <p className="font-bold text-slate-900">
-              Event: {booking.eventName}
-            </p>
-            <div className="space-y-1 text-slate-600">
-              <div>
-                <span>Kategori: </span>
-                <span className="font-bold text-slate-800">
-                  {booking.items.map((i) => `${i.categoryName} (${i.qty}x)`).join(", ")}
+        {/* RIGHT COLUMN: Transaction Summary & Action Buttons (5 Cols) */}
+        <div className="space-y-6 lg:col-span-5">
+          {/* Summary Card */}
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+            <div className="border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">
+                Status Pembayaran
+              </h3>
+              <div className="flex items-center gap-2 mt-2">
+                <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-800">
+                  LUNAS (TERVERIFIKASI SISTEM)
                 </span>
               </div>
-              <div>
-                <span>Total Tagihan: </span>
-                <span className="font-bold text-slate-800">
+            </div>
+
+            <div className="space-y-2 text-xs text-slate-600">
+              <div className="flex items-center justify-between">
+                <span>Metode Pembayaran</span>
+                <span className="font-semibold text-slate-900">BCA Virtual Account</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Nomor Referensi VA</span>
+                <span className="font-mono font-semibold text-slate-900">
+                  {booking.vaNumber || "8277 0812 9845 7890"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Waktu Transaksi</span>
+                <span className="font-mono font-semibold text-slate-900">
+                  24 Okt 2025, 10:14 WIB
+                </span>
+              </div>
+              <div className="border-t border-slate-100 pt-2 flex items-baseline justify-between text-sm">
+                <span className="font-bold text-slate-900">Total Dibayar</span>
+                <span className="font-mono font-black text-rose-600">
                   {formatRupiah(booking.totalAmount)}
                 </span>
               </div>
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Button
-              className="w-full font-black text-xs"
-              onClick={() => navigate(ROUTES.home)}
-            >
-              Kembali ke Beranda
-            </Button>
-            {event && (
+            {/* Notification alert */}
+            <div className="flex items-start gap-2.5 rounded-2xl border border-slate-200 bg-slate-50 p-3.5 text-xs text-slate-600">
+              <Mail className="size-4 text-slate-700 shrink-0 mt-0.5" />
+              <p className="leading-relaxed">
+                Salinan tiket digital & invoice telah dikirimkan ke <strong>{customerEmail}</strong> dan WhatsApp <strong>{customerPhone}</strong>.
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-2 pt-2">
+              <Button
+                onClick={handleDownloadPdf}
+                disabled={downloading}
+                className="w-full bg-rose-600 hover:bg-rose-700 text-white font-black py-3 rounded-2xl shadow-lg shadow-rose-600/30 text-xs"
+              >
+                <Download className="mr-1.5 size-4" />
+                {downloading ? "Mengunduh PDF..." : "Unduh E-Tiket (PDF)"}
+              </Button>
+
               <Button
                 variant="outline"
-                className="w-full font-bold text-xs"
-                onClick={() => navigate(ROUTES.waitingRoom(event.id))}
+                onClick={() => alert("E-Tiket berhasil ditambahkan ke Apple / Google Wallet.")}
+                className="w-full border-slate-200 text-slate-700 hover:bg-slate-50 font-bold py-3 rounded-2xl text-xs"
               >
-                <RotateCcw className="mr-1.5 size-3.5" />
-                Coba Antre Ulang Event Ini
+                <Wallet className="mr-1.5 size-4 text-slate-500" />
+                Simpan ke Apple / Google Wallet
               </Button>
-            )}
+
+              <Button
+                variant="outline"
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  alert("Tautan Pass berhasil disalin ke clipboard!");
+                }}
+                className="w-full border-slate-200 text-slate-700 hover:bg-slate-50 font-bold py-3 rounded-2xl text-xs"
+              >
+                <Share2 className="mr-1.5 size-4 text-slate-500" />
+                Bagikan Pass
+              </Button>
+
+              <div className="pt-2 text-center">
+                <Link
+                  to={ROUTES.home}
+                  className="inline-flex items-center text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors"
+                >
+                  <ArrowLeft className="mr-1 size-3.5" />
+                  Kembali ke Beranda Booket
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

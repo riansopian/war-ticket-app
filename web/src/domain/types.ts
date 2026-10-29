@@ -1,6 +1,6 @@
 /**
  * Domain model (framework-agnostic).
- * Diperbarui untuk mendukung visual fidelity tinggi sesuai Revamp Figma.
+ * Diperbarui untuk mendukung visual fidelity tinggi sesuai Revamp Booket Concert & Queue.
  */
 
 export type EventStatus =
@@ -12,7 +12,9 @@ export type EventStatus =
 export interface Event {
   id: string;
   name: string;
+  subtitle?: string;
   tourName?: string;
+  description?: string;
   city: string;
   venue: string;
   startsAt: string;
@@ -22,6 +24,11 @@ export interface Event {
   remainingTicketsText?: string;
   startingPrice?: number;
   gateInfo?: string;
+  presalePhase?: string;
+  totalCapacity?: number;
+  soldCount?: number;
+  fillPercent?: number;
+  imageUrl?: string;
 }
 
 export interface TicketCategory {
@@ -32,6 +39,8 @@ export interface TicketCategory {
   description?: string;
   tag?: string;
   isSoldOut?: boolean;
+  tier?: string;
+  perks?: string;
 }
 
 /* ───────── Queue ───────── */
@@ -46,6 +55,9 @@ export interface QueueStatus {
   token?: string;
   speedPerMin?: number;
   trafficStability?: string;
+  totalQueueVisitors?: number;
+  visitorsAheadText?: string;
+  rateSpeedText?: string;
   bookingExpiresAt?: string;
   retryAfterMs: number;
 }
@@ -70,6 +82,7 @@ export interface Booking {
   nik?: string;
   customerName?: string;
   customerEmail?: string;
+  customerPhone?: string;
   items: BookingItem[];
   subtotal: number;
   taxAmount: number;
@@ -80,6 +93,8 @@ export interface Booking {
   vaNumber?: string;
   idempotencyKey?: string;
   ticketCodes?: string[];
+  gateInfo?: string;
+  rowSeat?: string;
 }
 
 export interface CreateBookingInput {
@@ -87,15 +102,27 @@ export interface CreateBookingInput {
   nik: string;
   customerName?: string;
   customerEmail?: string;
+  customerPhone?: string;
   items: Array<{ categoryId: string; qty: number }>;
 }
 
 /* ───────── Payment ───────── */
 
-export type PaymentMethodId = "VIRTUAL_ACCOUNT" | "E_WALLET" | "BANK_TRANSFER";
+export type PaymentMethodId =
+  | "VIRTUAL_ACCOUNT"
+  | "BCA_VA"
+  | "MANDIRI_VA"
+  | "BRI_VA"
+  | "BNI_VA"
+  | "QRIS"
+  | "GOPAY"
+  | "E_WALLET"
+  | "BANK_TRANSFER"
+  | "CREDIT_CARD";
 
 export interface PaymentMethod {
   id: PaymentMethodId;
+  group: "VIRTUAL_ACCOUNT" | "E_WALLET" | "CARD";
   label: string;
   description?: string;
   badge?: string;
